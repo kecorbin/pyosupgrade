@@ -247,6 +247,7 @@ def switch_upgrade(ip, user, passwd, image, device_type='cisco_ios_ssh'):
         print "Upgrade requested by {} at {}".format(user, start)
         # display_facts(connected)
         backup_running_config(connected)
+        change_tcp_window(connected)
         copy_image(connected, image)
         print "Setting boot variable..."
         set_bootvar(connected, image=image)
