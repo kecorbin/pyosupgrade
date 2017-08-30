@@ -46,4 +46,4 @@ api.add_resource(Upgrade, '/api/upgrade')
 if __name__ == '__main__':
     app.secret_key = 'CHANGEME'
     app.debug = True
-    app.run()
+    app.run(host='0.0.0.0')
