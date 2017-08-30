@@ -95,6 +95,30 @@ def change_tcp_window(device, size=65535):
     device.open()
     device.config('ip tcp window-size {}'.format(size))
 
+def copy_remote_image(device, url, file_system='bootflash:'):
+    device.open()
+    image = url.split('/')[-1]
+    print "Setting file prompt to quiet"
+    device.native.send_config_set(["file prompt quiet"])
+    print "Copying image from {} to {}{}".format(url, file_system, image)
+    command = 'copy {} {}{}'.format(url, file_system, image)
+    output = device.native.send_command_expect(command, delay_factor=100)
+    try:
+        if 'bytes copied' in output:
+            stats = [l for l in output.split('\n') if 'bytes copied' in l][0]
+            print stats
+            print "Restoring file prompt to alert"
+            device.native.send_config_set(["file prompt alert"])
+            return True
+        else:
+            print "Restoring file prompt to alert"
+            device.native.send_config_set(["file prompt alert"])
+            return False
+    except IOError:
+        print "Restoring file prompt to alert"
+        device.native.send_config_set(["file prompt alert"])
+        return False
+
 def copy_image(device, image, verify=True, file_system='bootflash:'):
     """
     Copies an IOS image to remote device with MD5 verification
