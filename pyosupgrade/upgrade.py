@@ -38,7 +38,7 @@ class Logger(object):
     def __init__(self, hostname="defaut"):
         logger = logging.getLogger(hostname)
         logger.setLevel(logging.DEBUG)
-        fh = logging.FileHandler("logs/{0}/{0}-upgrade.log".format(hostname))
+        fh = MakeFileHandler("logs/{0}/{0}-upgrade.log".format(hostname))
         fh.setLevel(logging.DEBUG)
         ch = logging.StreamHandler()
         ch.setLevel(logging.INFO)
