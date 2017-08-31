@@ -116,6 +116,7 @@ def identify_sup(device):
     else:
         return "UNKNOWN"
 
+
 def copy_remote_image(device, url, file_system='bootflash:'):
     device.open()
     image = url.split('/')[-1]
@@ -156,6 +157,19 @@ def copy_image(device, image, verify=True, file_system='bootflash:'):
     if verify:
         verify_image(device, '{}{}'.format(file_system,image), md5hash=md5)
 
+def copy_image_to_slave(device, image, source_fs='bootflash:', dst_fs='slavebootflash:'):
+    print "Synchronizing image to secondary supervisor"
+    try:
+        device.open()
+        device.native.send_config_set(["file prompt quiet"])
+        command = 'copy {}{} {}{}'.format(source_fs, image,
+                                          dst_fs, image)
+        output = device.native.send_command_expect(command, delay_factor=100)
+        print output
+        return True
+    except:
+        return False
+        
 def verify_image(device, image, md5hash=None):
     """
     Perform md5 verfication of *image* on device using a provided md5hash

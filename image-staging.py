@@ -1,4 +1,4 @@
-from pyosupgrade.upgrade import copy_remote_image, identify_sup, verify_sup_redundancy
+from pyosupgrade.upgrade import copy_remote_image, identify_sup, verify_sup_redundancy, copy_image_to_slave
 from pyosupgrade.display import success, fail, info
 import sys
 import yaml
@@ -34,13 +34,14 @@ def main():
 
     info("Initatiating file transfer...")
     url = "tftp://{}/{}".format(regional_fs, image)
-    if copy_remote_image(device, url):
-        success('File Transfer Suceeded')
-    else:
-        fail('File Transfer Failed')
+    # if copy_remote_image(device, url):
+    #     success('File Transfer Suceeded')
+    # else:
+    #     fail('File Transfer Failed')
 
     if verify_sup_redundancy(device):
         info('Redundant Supervisors detected\n')
+        copy_image_to_slave(device, image)
 
 if __name__ == "__main__":
     main()
