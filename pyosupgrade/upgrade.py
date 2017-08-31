@@ -5,6 +5,7 @@ import time
 import hashlib
 import threading
 from progress.bar import ChargingBar
+from display import success, info, fail
 from pyntc import ntc_device as NTC
 from netmiko.ssh_exception import NetMikoTimeoutException, NetMikoAuthenticationException
 from subprocess import check_call
@@ -55,8 +56,7 @@ class Logger(object):
         #self.terminal.write(message)
         self.log.info(message)
 
-
-class DeviceUpgrade(threading.Thread):
+class DeviceUpgrader(threading.Thread):
     """
     Helper class to run upgrade async
     """
@@ -66,7 +66,7 @@ class DeviceUpgrade(threading.Thread):
         :param tunnel:
         :return:
         """
-        super(DeviceUpgrade, self).__init__()
+        super(DeviceUpgrader, self).__init__()
         self.daemon = True
         self.ip = ip
         self.username = username
@@ -77,6 +77,57 @@ class DeviceUpgrade(threading.Thread):
         print('starting upgrade async')
         switch_upgrade(self.ip, self.username, self.password, self.image)
         print('upgrade finished')
+
+
+class CodeUploader(threading.Thread):
+
+    def __init__(self, ip, username, password, mirrors, images):
+        """
+        :param tunnel:
+        :return:
+        """
+        super(CodeUploader, self).__init__()
+        self.daemon = True
+        self.ip = ip
+        self.username = username
+        self.password = password
+        self.mirrors = mirrors
+        self.images = images
+
+
+    def run(self):
+        print('starting code upload to {} asynchronously'.format(self.ip))
+        try:
+            device = NTC(host=self.ip, username=self.username, password=self.password, device_type="cisco_ios_ssh")
+            hostname = device.facts['hostname']
+        except:
+           fail("Unable to connect to device")
+        try:
+            regional_fs = self.mirrors[hostname[:2].upper()]['regional_fs']
+            info("Using server {}".format(regional_fs))
+        except KeyError:
+            fail("Unable to determine regional server")
+
+        sup_type = identify_sup(device)
+        info("Supervisor identified as {}".format(sup_type))
+        image = self.images[sup_type]['filename']
+        info("Using image {}".format(image))
+
+        info("Initatiating file transfer...")
+        url = "tftp://{}/{}".format(regional_fs, image)
+        if copy_remote_image(device, url):
+            success('File Transfer Suceeded')
+        else:
+            fail('File Transfer Failed')
+
+        if verify_sup_redundancy(device):
+            info('Redundant Supervisors detected\n')
+
+            if copy_image_to_slave(device, image):
+                success('File Transfer Suceeded')
+
+        print('code upload finished')
+
 
 def backup_running_config(device, filename=None):
     """
@@ -169,7 +220,7 @@ def copy_image_to_slave(device, image, source_fs='bootflash:', dst_fs='slaveboot
         return True
     except:
         return False
-        
+
 def verify_image(device, image, md5hash=None):
     """
     Perform md5 verfication of *image* on device using a provided md5hash
@@ -291,7 +342,22 @@ def wait_for_reboot(ip, repeat=500):
     except KeyboardInterrupt:
         sys.exit(1)
 
-# Main routine
+# Main routing for staging Code
+def stage_code(device, image_url, device_type='cisco_ios_ssh'):
+
+
+    if copy_remote_image(device, url):
+        success('File Transfer Suceeded')
+    else:
+        fail('File Transfer Failed')
+
+    if verify_sup_redundancy(device):
+        info('Redundant Supervisors detected\n')
+
+        if copy_image_to_slave(device, image):
+            success('File Transfer Suceeded')
+
+# Main routine for upgrades
 def switch_upgrade(ip, user, passwd, image, device_type='cisco_ios_ssh'):
     reloaded = False
     try:

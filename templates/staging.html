@@ -1,0 +1,49 @@
+{% extends "layout.html" %}
+{% set active_page = "staging" %}
+{% block content %}
+<div class="row">
+  <div class="col-md-12 text-center">
+   <button onclick="showmodal();" class="btn btn-default btn-lg">Start Staging Code!</button>
+  </div>
+</div>
+
+<div class="modal fade" id="newUpgradeModal">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h4 class="modal-title">Starting a new Code Staging Task</h4>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <form action="#" method="POST">
+        <div class="modal-body">
+          <div class="form-group row">
+            <label for="hostnames-input" class="col-sm-2 col-form-label">Device List</label>
+            <div class="col-sm-10">
+              <textarea name="hostnames" rows="10" class="form-control" type="text" placeholder="Enter hostname or IP one per line" id="hostnames-input"></textarea>
+            </div>
+          </div>
+          <div class="form-group row">
+            <label for="username-input" class="col-sm-2 col-form-label">Username</label>
+            <div class="col-sm-10">
+              <input name="username" class="form-control" type="text" placeholder="admin" id="username-input">
+            </div>
+          </div>
+          <div class="form-group row">
+            <label for="inputPassword" class="col-sm-2 col-form-label">Password</label>
+            <div class="col-sm-10">
+              <input name="password" type="password" class="form-control" id="inputPassword" placeholder="Password">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-lg btn-primary btn-block" type="submit">make it happen</button>
+
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
