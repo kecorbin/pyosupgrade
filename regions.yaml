@@ -1,0 +1,5 @@
+# used for switch name to fileserver mapping
+FR:
+  regional_fs: 10.250.6.20
+BF:
+  regional_fs: 10.152.174.88

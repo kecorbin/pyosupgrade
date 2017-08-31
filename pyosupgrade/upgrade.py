@@ -95,6 +95,27 @@ def change_tcp_window(device, size=65535):
     device.open()
     device.config('ip tcp window-size {}'.format(size))
 
+def verify_sup_redundancy(device):
+    """
+    verifies that supervisors are operating in SSO mode
+    """
+    device.open()
+    output = device.show('show module')
+    return "Standby hot" in output
+
+def identify_sup(device):
+    """
+    get's supervisor information from a 4500 switch
+    """
+    device.open()
+    output = device.show('show module')
+    if "WS-X45-SUP7-E" in output:
+        return "WS-X45-SUP7-E"
+    elif "WS-X45-SUP8-E" in output:
+        return "WS-X45-SUP8-E"
+    else:
+        return "UNKNOWN"
+
 def copy_remote_image(device, url, file_system='bootflash:'):
     device.open()
     image = url.split('/')[-1]
@@ -103,6 +124,7 @@ def copy_remote_image(device, url, file_system='bootflash:'):
     print "Copying image from {} to {}{}".format(url, file_system, image)
     command = 'copy {} {}{}'.format(url, file_system, image)
     output = device.native.send_command_expect(command, delay_factor=100)
+    print output
     try:
         if 'bytes copied' in output:
             stats = [l for l in output.split('\n') if 'bytes copied' in l][0]
