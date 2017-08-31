@@ -44,11 +44,27 @@
         {% endif %}
         {% endwith %}
     </div>
+    {% set navigation_bar = [
+        ('/staging', 'staging', 'Stage Code'),
+        ('/upgrade', 'upgrade', 'Upgrade Code'),
+    ] -%}
 
-    {% block content %}
+    <ul class="nav nav-tabs nav-justified">
+      {% for href, id, caption in navigation_bar %}
+        <li{% if id == active_page %}
+              class="active"
+            {% endif %}>
+            <a href="{{ href|e }}">{{ caption|e }}</a>
+          </li>
+      {% endfor %}
+    </ul>
 
-    {% endblock %}
-    <div class="row">
+    <div class="row" style="margin-top:20px;">
+      {% block content %}
+
+      {% endblock %}
+    </div>
+    <div class="row" style="margin-top:20px;">
       <div class="col-lg-12">
 
         Recent Upgrade Activity
