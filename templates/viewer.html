@@ -1,0 +1,12 @@
+{% extends 'viewer_layout.html' %}
+{% block content %}
+
+  <h1>{{ filename }}</h1>
+  <div class="row">
+    <div class="col-lg-12">
+      <div class="tab-content">
+        <pre><code>{{ contents }}</code></pre>
+      </div>
+    </div>
+  </div>
+{% endblock %}

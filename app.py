@@ -1,9 +1,15 @@
 from flask import Flask, render_template, request, flash, redirect, url_for
 from flask_restful import Resource, Api
 from pyosupgrade.upgrade import DeviceUpgrader, CodeUploader
+from pyosupgrade.views.logbin import Log, viewer
 import yaml
+
 app = Flask(__name__)
 api = Api(app)
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('notfound.html'), 404
 
 
 @app.route('/upgrade', methods=['GET', 'POST'])
@@ -63,6 +69,8 @@ class Upgrade(Resource):
 
 
 api.add_resource(Upgrade, '/api/upgrade')
+api.add_resource(Log, '/api/logbin', '/api/logbin/<int:id>', endpoint= 'log')
+app.add_url_rule('/logbin/viewer/<int:id>', 'viewer', view_func=viewer)
 
 
 if __name__ == '__main__':
