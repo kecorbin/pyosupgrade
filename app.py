@@ -7,7 +7,7 @@ import datetime
 from flask import Flask, render_template, request, flash, redirect, url_for
 from flask_restful import Resource, Api, MethodView
 from flask_sqlalchemy import SQLAlchemy
-import pyosupgrade.upgrade as upgrade
+import pyosupgrade.tasks as tasks
 from pyosupgrade.views.logbin import Log, viewer
 from pyosupgrade.decorators import run_async
 from pyosupgrade.display import success, info, fail
@@ -134,7 +134,7 @@ class CodeUpgradeJob(db.Model):
             fail("Unable to determine regional server")
 
         self.update_status("IDENTIFY PLATFORM")
-        sup_type, sup_output = upgrade.identify_sup(device)
+        sup_type, sup_output = tasks.identify_sup(device)
 
         info("Supervisor identified as {}".format(sup_type))
 
@@ -147,7 +147,7 @@ class CodeUpgradeJob(db.Model):
         self.update_status("TRANSFERRING")
         info("Initatiating file transfer...")
         url = "tftp://{}/{}".format(regional_fs, image)
-        transfer, transfer_output = upgrade.copy_remote_image(device, url)
+        transfer, transfer_output = tasks.copy_remote_image(device, url)
         if transfer:
             success('File Transfer Suceeded')
             self.code_upload_log_url = self.logbin(transfer_output).json()['url']
@@ -161,7 +161,7 @@ class CodeUpgradeJob(db.Model):
 
         # determine whether there is a sup redundancy
         self.update_status("VERIFY_SUP_REDUNDANCY")
-        sup_redundancy, sup_redundancy_output = upgrade.verify_sup_redundancy(device)
+        sup_redundancy, sup_redundancy_output = tasks.verify_sup_redundancy(device)
         if sup_redundancy:
             info('Redundant Supervisors detected\n')
             self.sup_redundancy_log_url = self.logbin(sup_redundancy_output).json()['url']
@@ -170,7 +170,7 @@ class CodeUpgradeJob(db.Model):
 
             self.update_status("SYNCHRONIZING IMAGE")
             self.save()
-            slave_copy, slave_copy_output = upgrade.copy_image_to_slave(device, image)
+            slave_copy, slave_copy_output = tasks.copy_image_to_slave(device, image)
             if slave_copy:
                 success('File Transfer Suceeded')
                 self.copy_code_to_slave_log_url = self.logbin(slave_copy_output).json()['url']
@@ -211,7 +211,7 @@ class CodeUpgradeJob(db.Model):
 
             # Change bootvar
             self.update_status("SETTING BOOT VARIABLE")
-            bootvar_result, bootvar_output = upgrade.set_bootvar(connected,
+            bootvar_result, bootvar_output = tasks.set_bootvar(connected,
                                                                  image=self.target_image)
             if bootvar_output:
                 resp = self.logbin(bootvar_output)
@@ -221,7 +221,7 @@ class CodeUpgradeJob(db.Model):
                 db.session.commit()
 
             self.update_status("VERIFY BOOT VARIABLE")
-            valid_bootvar, valid_bootvar_output = upgrade.verify_bootvar(connected, self.target_image)
+            valid_bootvar, valid_bootvar_output = tasks.verify_bootvar(connected, self.target_image)
 
             if valid_bootvar:
                 resp = self.logbin(valid_bootvar_output)
@@ -236,7 +236,7 @@ class CodeUpgradeJob(db.Model):
                 self.update_status("RELOADING")
                 self.save()
 
-                reload_output = upgrade.reload_device(connected, command='redundancy reload shelf')
+                reload_output = tasks.reload_device(connected, command='redundancy reload shelf')
                 resp = self.logbin("{}".format(reload_output))
                 self.reload_status_log_url = resp.json()['url']
                 self.save()
@@ -253,7 +253,7 @@ class CodeUpgradeJob(db.Model):
             print("Failed to connect to device")
             self.update_status("FAILED")
 
-        if reloaded and upgrade.wait_for_reboot(self.device):
+        if reloaded and tasks.wait_for_reboot(self.device):
 
             self.update_status("BACK ONLINE, WAITING FOR BOOTUP")
             self.save()
@@ -278,7 +278,7 @@ class CodeUpgradeJob(db.Model):
 
         print("Verify FPGA")
         self.update_status("VERIFYING FPGA UPGRADE")
-        fpga_status, fpga_output = upgrade.verify_fpga(online)
+        fpga_status, fpga_output = tasks.verify_fpga(online)
         resp = self.logbin(fpga_output)
         self.verify_fpga_upgrade_status_log_url = resp.json()['url']
         self.save()
