@@ -1,5 +1,9 @@
-# used for switch name to fileserver mapping
+# used for switch name to fileserver mapping swithches will have a site code
+# used in their hostnames that we can use as a way of determining the closest
+# server
+
+# the application needs to be restarted after changing this file
 FR:
   regional_fs: 10.250.6.20
 BF:
-  regional_fs: 10.152.174.88
+  regional_fs: 10.122.1.10

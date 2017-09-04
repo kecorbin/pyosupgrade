@@ -2,6 +2,9 @@
 *.bin
 static/ios/*
 
+# databases
+*.db
+
 # log files
 logs/*
 

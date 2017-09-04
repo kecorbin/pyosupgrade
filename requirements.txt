@@ -51,3 +51,4 @@ tornado==4.5.2
 tornado-http-auth==1.1.0
 urllib3==1.22
 Werkzeug==0.12.2
+Flask-SQLAlchemy==2.2
