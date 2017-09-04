@@ -1,0 +1,113 @@
+{% extends "layout.html" %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="/static/css/panels.css">
+{% endblock %}
+{% block content %}
+
+<script>
+
+$(document).on('click', '.panel-heading span.clickable', function(e){
+    var $this = $(this);
+	if(!$this.hasClass('panel-collapsed')) {
+		$this.parents('.panel').find('.panel-body').slideUp();
+		$this.addClass('panel-collapsed');
+		$this.find('i').removeClass('glyphicon-chevron-up').addClass('glyphicon-chevron-down');
+	} else {
+		$this.parents('.panel').find('.panel-body').slideDown();
+		$this.removeClass('panel-collapsed');
+		$this.find('i').removeClass('glyphicon-chevron-down').addClass('glyphicon-chevron-up');
+	}
+})
+</script>
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-12 text-center">
+     <button onclick="showCredentialsModal();" class="btn btn-default btn-lg">Proceed With Upgrade</button>
+    </div>
+  </div>
+
+  <div class="row">
+    <table class="table table-bordered">
+    <thead>
+      <tr>
+        <th>Device IP/Hostname</th>
+        <th>Initiated By</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>{{job.device}}</td>
+        <td>{{job.username}}</td>
+        <td>{{job.status}}</td>
+      </tr>
+    </tbody>
+  </table>
+
+{% for item in [('Code Transfer', job.code_upload_status, job.code_upload_log_url),
+                ('Verify Supervisor Redundancy', job.sup_redundancy_status, job.sup_redundancy_log_url),
+                ('Synchronize Code to Standby Supervisor', job.copy_code_to_slave_status, job.copy_code_to_slave_log_url),
+                ('Backup Running Config', job.backup_running_config_status, job.backup_running_config_log_url),
+                ('Set Boot Variable', job.set_bootvar_status, job.set_bootvar_status_log_url),
+                ('Verify Boot Variable', job.verify_bootvar_status, job.verify_bootvar_status_log_url),
+                ('Reload Device', job.reload_status, job.reload_status_log_url),
+                ('Verify Upgrade', job.verify_upgrade, job.verify_upgrade_log_url, job.verify_upgrade_log_url),
+                ('Verify FPGA Upgrades', job.verify_fpga_upgrade_status, job.verify_fpga_upgrade_status_log_url)
+              ]
+
+%}
+
+
+        <div class="row">
+          <div class="panel panel-{{ item.1 }}">
+            <div class="panel-heading">
+              <h3 class="panel-title">{{ item.0 }}</h3>
+              <span class="pull-right clickable panel-collapsed"><i class="glyphicon glyphicon-chevron-down"></i></span>
+            </div>
+            <div class="panel-body" style="display: none;">
+              <iframe frameBorder="0" style="width: 100%; height: 50%;" src="{{ item.2 }}"></iframe>
+            </div>
+          </div>
+        </div>
+
+{% endfor %}
+  <!-- <div class="row">
+    <div class="panel panel-{{ job.code_upload_status }}">
+      <div class="panel-heading">
+        <h3 class="panel-title">Code Transfer </h3>
+        <span class="pull-right clickable panel-collapsed"><i class="glyphicon glyphicon-chevron-down"></i></span>
+      </div>
+      <div class="panel-body" style="display: none;">
+        <iframe frameBorder="0" style="width: 100%; height: 50%;" src="{{ job.code_upload_log_url }}"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="panel panel-{{ job.sup_redundancy_status }}">
+      <div class="panel-heading">
+        <h3 class="panel-title">Verify Supervisor Redundancy </h3>
+        <span class="pull-right clickable panel-collapsed"><i class="glyphicon glyphicon-chevron-down"></i></span>
+      </div>
+      <div class="panel-body" style="display: none;">
+        <iframe frameBorder="0" style="width: 100%;  height: 50%;" src="{{ job.sup_redundancy_log_url }}"></iframe>
+
+      </div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="panel panel-{{job.copy_code_to_slave_status}}">
+      <div class="panel-heading">
+        <h3 class="panel-title">Synchronize Code to Standby Supervisor </h3>
+        <span class="pull-right clickable panel-collapsed"><i class="glyphicon glyphicon-chevron-down"></i></span>
+      </div>
+      <div class="panel-body" style="display: none;">
+        <iframe frameBorder="0" style="width: 100%;  height: 50%%;" src="{{ job.copy_code_to_slave_log_url }}"></iframe>
+      </div>
+    </div>
+  </div> -->
+
+</div>
+
+{% endblock %}
