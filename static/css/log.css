@@ -9,16 +9,15 @@ body {
 }
 
 pre {
-    padding: 9.5px;
-    margin: 0 0 10px;
+    padding: 0px;
+    width: 100%;
     font-size: 13px;
     line-height: 1.42857143;
     color: white;
     word-break: break-all;
     word-wrap: break-word;
     background-color: black;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+
 }
 pre code {
   font: 11pt/1.25 Monaco, monospace;
