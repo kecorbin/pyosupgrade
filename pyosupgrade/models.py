@@ -1,9 +1,10 @@
+from flask import url_for
 from flask_sqlalchemy import SQLAlchemy
 
 db = SQLAlchemy()
 
 class CodeUpgradeJob(db.Model):
-    __tablename__ = 'staging-jobs'
+    __tablename__ = 'CodeUpgrades'
     id = db.Column(db.Integer, primary_key=True)
     device = db.Column(db.String(64))
     username = db.Column(db.String(32))
@@ -17,23 +18,23 @@ class CodeUpgradeJob(db.Model):
     status = db.Column(db.String(18), default="SUBMITTED")
     status_log_url = db.Column(db.String(128))
 
-    code_upload_status = db.Column(db.String(128), default="unknown")
+    code_upload_status = db.Column(db.String(128), default="default")
     code_upload_log_url = db.Column(db.String(128), default=None)
-    sup_redundancy_status = db.Column(db.String(128), default="unknown")
+    sup_redundancy_status = db.Column(db.String(128), default="default")
     sup_redundancy_log_url = db.Column(db.String(128), default=None)
-    copy_code_to_slave_status = db.Column(db.String(128), default="unknown")
+    copy_code_to_slave_status = db.Column(db.String(128), default="default")
     copy_code_to_slave_log_url = db.Column(db.String(128), default=None)
-    backup_running_config_status = db.Column(db.String(128), default="unknown")
+    backup_running_config_status = db.Column(db.String(128), default="default")
     backup_running_config_log_url = db.Column(db.String(128), default=None)
-    set_bootvar_status = db.Column(db.String(128), default="unknown")
+    set_bootvar_status = db.Column(db.String(128), default="default")
     set_bootvar_status_log_url = db.Column(db.String(128), default=None)
-    verify_bootvar_status = db.Column(db.String(128), default="unknown")
+    verify_bootvar_status = db.Column(db.String(128), default="default")
     verify_bootvar_status_log_url = db.Column(db.String(128), default=None)
-    reload_status = db.Column(db.String(128), default="unknown")
+    reload_status = db.Column(db.String(128), default="default")
     reload_status_log_url = db.Column(db.String(128), default=None)
-    verify_upgrade = db.Column(db.String(128), default = "unknown")
+    verify_upgrade = db.Column(db.String(128), default = "default")
     verify_upgrade_log_url = db.Column(db.String(128), default=None)
-    verify_fpga_upgrade_status = db.Column(db.String(128), default="unknown")
+    verify_fpga_upgrade_status = db.Column(db.String(128), default="default")
     verify_fpga_upgrade_status_log_url = db.Column(db.String(128), default=None)
 
     def __init__(self, device, username, password):
@@ -60,10 +61,9 @@ class CodeUpgradeJob(db.Model):
                 "copy_code_to_slave_status": self.copy_code_to_slave_status,
                 "copy_code_to_slave_log_url": self.copy_code_to_slave_log_url,
                 "set_bootvar_status": self.set_bootvar_status,
+                "set_bootvar_status_log_url": self.set_bootvar_status_log_url,
                 "backup_running_config_status": self.backup_running_config_status,
                 "backup_running_config_log_url":  self.backup_running_config_log_url,
-                "set_bootvar_status": self.set_bootvar_status_log_url,
-                "set_bootvar_status_log_url": self.set_bootvar_status_log_url,
                 "verify_bootvar_status": self.verify_bootvar_status,
                 "verify_bootvar_status_log_url": self.verify_bootvar_status_log_url,
                 "reload_status": self.reload_status,
@@ -76,12 +76,6 @@ class CodeUpgradeJob(db.Model):
                 "images_url": self.images_url,
                 "logbin_url": self.logbin_url
                 }
-
-    def logbin(self, msg):
-        headers = {"Content-Type": "application/json"}
-        data = {"text": msg}
-        resp = requests.post(LOGBIN_URL, data=json.dumps(data), headers=headers)
-        return resp
 
     @classmethod
     def from_dict(cls, job_dict):

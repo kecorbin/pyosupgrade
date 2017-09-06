@@ -99,8 +99,6 @@ def jobview(id=None):
                     db.session.commit()
                     thread_launcher(job, request, "start_staging")
 
-
-
             flash("Submitted Job", "success")
             return redirect(url_for('jobview'))
 

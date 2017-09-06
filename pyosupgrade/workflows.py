@@ -44,29 +44,34 @@ class IOSUpgrade(BaseUpgrade):
         print("Initatiating file transfer...")
         url = "tftp://{}/{}".format(regional_fs, image)
         transfer, transfer_output = tasks.copy_remote_image(device, url)
+        self.code_upload_log_url = self.logbin(transfer_output).json()['url']
         if transfer:
             print('File Transfer Suceeded')
-            self.code_upload_log_url = self.logbin(transfer_output).json()['url']
             self.code_upload_status = "success"
-
         else:
             print('File Transfer Failed')
-            self.sup_redundancy_log_url = self.logbin()
+            self.code_upload_status = "danger"
+            exit()
 
         # determine whether there is a sup redundancy
         self.status = "VERIFY_SUP_REDUNDANCY"
         sup_redundancy, sup_redundancy_output = tasks.verify_sup_redundancy(device)
+        self.sup_redundancy_log_url = self.logbin(sup_redundancy_output).json()['url']
         if sup_redundancy:
             print('Redundant Supervisors detected\n')
-            self.sup_redundancy_log_url = self.logbin(sup_redundancy_output).json()['url']
             self.sup_redundancy_status = "success"
 
             self.status = "SYNCHRONIZING IMAGE"
             slave_copy, slave_copy_output = tasks.copy_image_to_slave(device, image)
+            self.copy_code_to_slave_log_url = self.logbin(slave_copy_output).json()['url']
             if slave_copy:
                 print('File Transfer Suceeded')
-                self.copy_code_to_slave_log_url = self.logbin(slave_copy_output).json()['url']
                 self.copy_code_to_slave_status = "success"
+            else:
+                self.copy_code_to_slave_status = "danger"
+        else:
+            print('Sups not redundant')
+            self.copy_code_to_slave_status = "warning"
 
         self.status = "CODE STAGING SUCCESSFUL"
 
