@@ -1,7 +1,6 @@
 import os
 from flask import request, url_for, render_template
 from flask_restful import Resource, abort
-import errno
 
 class LogFile(object):
 
