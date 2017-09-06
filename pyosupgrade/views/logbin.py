@@ -2,6 +2,7 @@ import os
 from flask import request, url_for, render_template
 from flask_restful import Resource, abort
 
+
 class LogFile(object):
 
     def __init__(self, text):
@@ -23,18 +24,19 @@ class LogFile(object):
         self.text = text
 
 
-def viewer(id):
+def viewer(logid):
     try:
-        with open('{}/logs/{}.log'.format(os.getcwd(), id), 'r') as fh:
+        with open('{}/logs/{}.log'.format(os.getcwd(), logid), 'r') as fh:
             contents = fh.read()
-        return render_template('viewer.html', filename="{}.log".format(id), contents=contents)
+        return render_template('viewer.html', filename="{}.log".format(logid), contents=contents)
     except IOError:
         abort(404)
 
+
 class Log(Resource):
-    def get(self, id):
+    def get(self, logid):
         try:
-            with open('logs/{}.log'.format(id)) as fh:
+            with open('logs/{}.log'.format(logid)) as fh:
                 log = fh.read()
         except IOError as e:
             return {"error": "{}".format(e)}
