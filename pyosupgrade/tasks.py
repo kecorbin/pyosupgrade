@@ -33,7 +33,7 @@ def identify_sup(device):
         return "UNKNOWN", output
 
 
-def copy_remote_image(device, url, file_system='bootflash:'):
+def copy_remote_image(device, url, file_system="bootflash:"):
     device.open()
     image = url.split('/')[-1]
     print "Setting file prompt to quiet"

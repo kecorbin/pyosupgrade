@@ -1,8 +1,11 @@
 WS-X45-SUP7-E:
-  filename: cat4500e-universalk9.SPA.03.06.07.E.152-2.E7.bin
+  filename: fakeimage.bin
 
 WS-X45-SUP8-E:
   filename: cat4500es8-universal.SPA.03.08.04.E.152-4.E4.bin
+
+FOO2:
+  filename: cat4500e-universalk9.SPA.03.06.07.E.152-2.E7.bin
 
 FOO:
   filename: cat4500e-universalk9.SPA.03.08.04.E.152-4.E4.bin
