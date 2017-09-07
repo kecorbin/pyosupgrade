@@ -2,7 +2,7 @@ import yaml
 import os
 from flask import Flask, render_template, request, flash, redirect, url_for
 from flask_restful import Resource, Api
-from pyosupgrade.workflows import IOSUpgrade
+from pyosupgrade.procedures import IOSUpgrade
 from pyosupgrade.views.logbin import Log, viewer
 from pyosupgrade.models import db, CodeUpgradeJob
 
@@ -20,6 +20,15 @@ with app.app_context():
 
 LOGBIN_URL = "http://127.0.0.1:5000/api/logbin"
 
+METHOD_OF_PROCEDURES = {
+    "asr1000": {"description": "a fake mop",
+                 "procedure": None},
+    "csr1000v": {"description": "a fake mop",
+                 "procedure": None},
+    "cat4500-3.8.4-w-fpga": {"description": "Upgrade Catalyst 4500 with FPGA upgrade validation",
+                             "procedure": IOSUpgrade}
+}
+
 
 @app.errorhandler(404)
 def page_not_found(e):
@@ -32,7 +41,9 @@ def home():
 
 def thread_launcher(job, request, operation):
     """
-    initiates an IOS upgrade job from a request via webform or REST API
+    this is essentially a class factory which initiates an
+    IOS upgrade job from a request via webform or REST API
+
     :param job: CodeUpgradeJob an instance of CodeUpgradeJob
     :param request: flask.request a flask requst
     :param operation: string containing the desired process e.g start_staging
@@ -46,6 +57,8 @@ def thread_launcher(job, request, operation):
         user, passwd = request.json['username'], request.json['password']
     elif request.form:
         user, passwd = request.form['username'], request.form['password']
+        mop = request.form['mop']
+        print request.form
 
     # start an upgrade thread which uses the job api for updating status
     thread = IOSUpgrade(url, user, passwd)
@@ -65,13 +78,15 @@ def jobview(id=None):
             job = CodeUpgradeJob.query.filter_by(id=id).first()
             return render_template('upgrade-detail.html',
                                    title="Job Detail",
-                                   job=job)
+                                   job=job,
+                                   procedures=METHOD_OF_PROCEDURES)
         else:
             jobs = CodeUpgradeJob.query.all()
             return render_template('upgrade.html',
                                    title='Code Staging',
                                    logo='/static/img/4500.jpg',
-                                   jobs=jobs)
+                                   jobs=jobs,
+                                   procedures=METHOD_OF_PROCEDURES)
 
     elif request.method == 'POST':
         # handle the case where this is an existing job
