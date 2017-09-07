@@ -1,4 +1,5 @@
 {% extends "layout.html" %}
+{% from "progress_bars.html" import progress_bar %}
 {% block content %}
 <div class="row">
   <div class="col-md-12 text-center">
@@ -15,6 +16,7 @@
           <th>Initiated by</td>
           <th>Device</th>
           <th>Status</th>
+          <th>Progress</th>
         </tr>
       </thead>
       <tbody>
@@ -25,6 +27,7 @@
               <td>{{ job.username }}</td>
               <td>{{ job.device }}</td>
               <td>{{ job.status }}</td>
+              <td>{{ progress_bar(job) }}</td>
 
             </tr>
 
