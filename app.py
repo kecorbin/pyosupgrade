@@ -55,14 +55,14 @@ def thread_launcher(job, request, operation):
     url = url_for('upgrade-api', id=job.id, _external=True)
     if request.json:
         user, passwd = request.json['username'], request.json['password']
+        thread = IOSUpgrade(url, user, passwd)
     elif request.form:
         user, passwd = request.form['username'], request.form['password']
         mop = request.form['mop']
         print request.form
+        thread = METHOD_OF_PROCEDURES[mop]['procedure'](url, user, passwd)
 
     # start an upgrade thread which uses the job api for updating status
-    thread = IOSUpgrade(url, user, passwd)
-
     # depending on operation we will trigger the appropriate process
     # thread.start_upgrade()
     #

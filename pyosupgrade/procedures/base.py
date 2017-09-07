@@ -1,10 +1,11 @@
-from pyosupgrade import BaseUpgrade
-import tasks
-import time
 import datetime
+import time
+
 import requests
-from pyntc import ntc_device as NTC
 from netmiko.ssh_exception import NetMikoTimeoutException
+from pyntc import ntc_device as NTC
+from pyosupgrade import BaseUpgrade
+from pyosupgrade.tasks import tasks
 
 
 class IOSUpgrade(BaseUpgrade):
