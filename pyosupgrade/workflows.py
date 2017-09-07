@@ -17,13 +17,18 @@ class IOSUpgrade(BaseUpgrade):
         self.status = "CONNECTING"
 
         try:
-            device = NTC(host=self.device, username=self.username, password=self.password, device_type="cisco_ios_ssh")
+            device = NTC(host=self.device,
+                         username=self.username,
+                         password=self.password,
+                         device_type="cisco_ios_ssh")
+
             hostname = device.facts['hostname']
 
         except Exception:
             self.status = "FAILED CONNECT"
         try:
-            regions = requests.get(self.regions_url, headers=self.request_headers).json()
+            regions = requests.get(self.regions_url,
+                                   headers=self.request_headers).json()
             regional_fs = regions[hostname[:2].upper()]['regional_fs']
             print("Using server {}".format(regional_fs))
         except KeyError:
@@ -35,7 +40,8 @@ class IOSUpgrade(BaseUpgrade):
         print("Supervisor identified as {}".format(sup_type))
 
         self.status = "LOCATING IMAGE"
-        images = requests.get(self.images_url, headers=self.request_headers).json()
+        images = requests.get(self.images_url,
+                              headers=self.request_headers).json()
         image = images[sup_type]['filename']
         print("Using image {}".format(image))
         self.target_image = image
@@ -44,7 +50,8 @@ class IOSUpgrade(BaseUpgrade):
         print("Initatiating file transfer...")
         url = "tftp://{}/{}".format(regional_fs, image)
         transfer, transfer_output = tasks.copy_remote_image(device, url)
-        self.code_upload_log_url = self.logbin(transfer_output).json()['url']
+        logbin_url = self.logbin(transfer_output)
+        self.code_upload_log_url = logbin_url
         if transfer:
             print('File Transfer Suceeded')
             self.code_upload_status = "success"
@@ -55,15 +62,17 @@ class IOSUpgrade(BaseUpgrade):
 
         # determine whether there is a sup redundancy
         self.status = "VERIFY_SUP_REDUNDANCY"
-        sup_redundancy, sup_redundancy_output = tasks.verify_sup_redundancy(device)
-        self.sup_redundancy_log_url = self.logbin(sup_redundancy_output).json()['url']
+        result = tasks.verify_sup_redundancy(device)
+        sup_redundancy, sup_redundancy_output = result
+        self.sup_redundancy_log_url = self.logbin(sup_redundancy_output)
         if sup_redundancy:
             print('Redundant Supervisors detected\n')
             self.sup_redundancy_status = "success"
 
             self.status = "SYNCHRONIZING IMAGE"
-            slave_copy, slave_copy_output = tasks.copy_image_to_slave(device, image)
-            self.copy_code_to_slave_log_url = self.logbin(slave_copy_output).json()['url']
+            result = tasks.copy_image_to_slave(device, image)
+            slave_copy, slave_copy_output = result
+            self.copy_code_to_slave_log_url = self.logbin(slave_copy_output)
             if slave_copy:
                 print('File Transfer Suceeded')
                 self.copy_code_to_slave_status = "success"
@@ -85,8 +94,10 @@ class IOSUpgrade(BaseUpgrade):
 
         # Connect to device
         try:
-            connected = NTC(host=self.device, username=self.username,
-                            password=self.password, device_type="cisco_ios_ssh")
+            connected = NTC(host=self.device,
+                            username=self.username,
+                            password=self.password,
+                            device_type="cisco_ios_ssh")
 
         except NetMikoTimeoutException:
             connected = None
@@ -97,6 +108,8 @@ class IOSUpgrade(BaseUpgrade):
         if connected:
             hostname = connected.facts['hostname']
             start = datetime.datetime.now()
+            print("Upgrade for {} started at {}".format(hostname,
+                                                        start))
 
         else:
             self.status = "FAILED - COULD NOT CONNECT TO DEVICE"
@@ -107,18 +120,19 @@ class IOSUpgrade(BaseUpgrade):
         output = connected.show('show running-config')
         if output:
             self.backup_running_config_status = "success"
-            resp = self.logbin(output)
-            self.backup_running_config_log_url = resp.json()['url']
+            logbin_url = self.logbin(output)
+            self.backup_running_config_log_url = logbin_url
         else:
             self.status = "FAILED - COULD NOT BACKUP RUNNING CONFIG"
             exit()
 
         # Change bootvar
         self.status = "SETTING BOOT VARIABLE"
-        bootvar_result, bootvar_output = tasks.set_bootvar(connected, image=self.target_image)
+        result = tasks.set_bootvar(connected, image=self.target_image)
+        bootvar_result, bootvar_output = result
         if bootvar_output:
-            resp = self.logbin(bootvar_output)
-            self.set_bootvar_status_log_url = resp.json()['url']
+            logbin_url = self.logbin(bootvar_output)
+            self.set_bootvar_status_log_url = logbin_url
             self.set_bootvar_status = "success"
         else:
             self.status = "FAILED - COULD NOT SET BOOT VARIABLE"
@@ -126,13 +140,13 @@ class IOSUpgrade(BaseUpgrade):
 
         # Verify bootvar
         self.status = "VERIFY BOOT VARIABLE"
-        valid_bootvar, valid_bootvar_output = tasks.verify_bootvar(connected, self.target_image)
+        result = tasks.verify_bootvar(connected, self.target_image)
+        valid_bootvar, valid_bootvar_output = result
 
         if valid_bootvar:
-            resp = self.logbin(valid_bootvar_output)
-            self.verify_bootvar_status_log_url = resp.json()['url']
+            logbin_url = self.logbin(valid_bootvar_output)
+            self.verify_bootvar_status_log_url = logbin_url
             self.set_bootvar_status = "success"
-
             self.verify_bootvar_status = "success"
             time.sleep(10)
         else:
@@ -141,9 +155,10 @@ class IOSUpgrade(BaseUpgrade):
 
         # Reload
         self.status = "RELOADING"
-        reload_output = tasks.reload_device(connected, command='redundancy reload shelf')
-        resp = self.logbin("{}".format(reload_output))
-        self.reload_status_log_url = resp.json()['url']
+        reload_output = tasks.reload_device(connected,
+                                            command='redundancy reload shelf')
+        logbin_url = self.logbin("{}".format(reload_output))
+        self.reload_status_log_url = logbin_url
 
         reloaded = True
         if reloaded:
@@ -165,14 +180,17 @@ class IOSUpgrade(BaseUpgrade):
 
         # Verify upgrade
         self.status = "VERIFYING UPGRADE"
-        online = NTC(host=self.device, username=self.username, password=self.password, device_type="cisco_ios_ssh")
+        online = NTC(host=self.device,
+                     username=self.username,
+                     password=self.password,
+                     device_type="cisco_ios_ssh")
 
         image_output = online.show('sho ver | inc System image')
         upgraded = self.target_image in image_output
         if upgraded:
             self.verify_upgrade = "success"
-            resp = self.logbin(image_output)
-            self.verify_upgrade_log_url = resp.json()['url']
+            logbin_url = self.logbin(image_output)
+            self.verify_upgrade_log_url = logbin_url
 
         else:
             self.verify_upgrade = "danger"
@@ -180,8 +198,8 @@ class IOSUpgrade(BaseUpgrade):
         print("Verify FPGA")
         self.status = "VERIFYING FPGA UPGRADE"
         fpga_status, fpga_output = tasks.verify_fpga(online)
-        resp = self.logbin(fpga_output)
-        self.verify_fpga_upgrade_status_log_url = resp.json()['url']
+        logbin_url = self.logbin(fpga_output)
+        self.verify_fpga_upgrade_status_log_url = logbin_url
 
         if fpga_status:
             self.verify_fpga_upgrade_status = "success"
@@ -194,6 +212,7 @@ class IOSUpgrade(BaseUpgrade):
             print("Upgrade was successful")
         else:
             self.status = "UPGRADE FAILED"
-            print("Unable to verify image load was successful, please check manually")
+            print("Unable to verify image load was successful")
 
-
+        end = datetime.datetime.now()
+        print("Upgrade for {} ended at {}".format(hostname, end))

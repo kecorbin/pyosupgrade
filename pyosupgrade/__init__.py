@@ -29,7 +29,6 @@ class BaseUpgrade(object):
         # except Exception as e:
         #     self.status = "Failed - {}".format(e[:64])
 
-
     def staging_process(self):
         raise NotImplementedError
 
@@ -51,14 +50,18 @@ class BaseUpgrade(object):
             return resp.json()
 
     def _update_job(self):
-        resp = requests.post(self.job_url, data=json.dumps(self._attributes), headers=self.request_headers)
+        resp = requests.post(self.job_url,
+                             data=json.dumps(self._attributes),
+                             headers=self.request_headers)
         if resp.ok:
             print("Updated job api for id {}".format(self._attributes['id']))
 
     def logbin(self, msg):
         data = {"text": msg}
-        resp = requests.post(self.logbin_url, data=json.dumps(data), headers=self.request_headers)
-        return resp
+        resp = requests.post(self.logbin_url,
+                             data=json.dumps(data),
+                             headers=self.request_headers)
+        return resp.json()['url']
 
     def log(self, msg):
         self._status_log += msg + "\n"
@@ -278,4 +281,3 @@ class BaseUpgrade(object):
     def logbin_url(self, status):
         self._attributes["logbin_url"] = status
         self._update_job()
-

@@ -1,7 +1,7 @@
 import yaml
 import os
 from flask import Flask, render_template, request, flash, redirect, url_for
-from flask_restful import Resource, Api, MethodView
+from flask_restful import Resource, Api
 from pyosupgrade.workflows import IOSUpgrade
 from pyosupgrade.views.logbin import Log, viewer
 from pyosupgrade.models import db, CodeUpgradeJob
@@ -10,13 +10,15 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 app = Flask(__name__)
 api = Api(app)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(basedir, 'upgrade.db')
+# https://stackoverflow.com/questions/33738467/how-do-i-know-if-i-can-disable-sqlalchemy-track-modifications
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+path = os.path.join(basedir + 'upgrade.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + path
 db.init_app(app)
 with app.app_context():
     db.create_all()
 
 LOGBIN_URL = "http://127.0.0.1:5000/api/logbin"
-
 
 
 @app.errorhandler(404)
@@ -27,12 +29,14 @@ def page_not_found(e):
 def home():
     return redirect(url_for('jobview'))
 
+
 def thread_launcher(job, request, operation):
     """
     initiates an IOS upgrade job from a request via webform or REST API
     :param job: CodeUpgradeJob an instance of CodeUpgradeJob
     :param request: flask.request a flask requst
-    :param operation: string containing the desired process e.g start_staging start_upgrading
+    :param operation: string containing the desired process e.g start_staging
+
     :return:
     """
 
@@ -70,11 +74,13 @@ def jobview(id=None):
                                    jobs=jobs)
 
     elif request.method == 'POST':
-        # handle the case where this is an existing job (probably ready to be upgraded)
+        # handle the case where this is an existing job
+        # this most likely means the device is ready to be upgraded)
         if id:
             print ("starting upgrade")
             job = CodeUpgradeJob.query.filter_by(id=id).first()
-            # here we dispatch the request to a worker thread which will update itself via the API
+            # here we dispatch the request to a worker thread
+            # the thread which will update its record via the API
             thread_launcher(job, request, "start_upgrade")
             # Notify the user
             flash("Upgrade Started", "success")
@@ -91,10 +97,13 @@ def jobview(id=None):
             print devices
             for d in devices:
 
-                # make sure the device name/ip is valid, could use better verification e.g ping/etc
+                # make sure the device name/ip is valid,
+                # this could use better verification e.g ping/etc
                 if len(d) > 5:
                     print "Creating code upload job for {}".format(d)
-                    job = CodeUpgradeJob(d, payload['username'], payload['password'])
+                    job = CodeUpgradeJob(d,
+                                         payload['username'],
+                                         payload['password'])
                     db.session.add(job)
                     db.session.commit()
                     thread_launcher(job, request, "start_staging")
@@ -131,8 +140,6 @@ class CodeUpgradeJobView(Resource):
 
             job.save()
 
-            #print request.json
-
         else:
             if request.json:
                 job = CodeUpgradeJob.from_dict(request.json)
@@ -150,23 +157,52 @@ class Images(Resource):
     def get(self, id=None):
         return IMAGES
 
+
 class Regions(Resource):
     """
-    Returns a list of regional tftp servers based unique site identifier encoded in hostname
+    Returns a list of regional tftp servers based
+    unique site identifier encoded in hostname
     """
     def get(self, id=None):
         return REGIONS
 
-api.add_resource(Regions, '/api/regions', endpoint='regions')
-api.add_resource(Images, '/api/images', endpoint='images')
 
-api.add_resource(Log, '/api/logbin', '/api/logbin/<int:id>', endpoint= 'logbin')
-api.add_resource(CodeUpgradeJobView, '/api/upgrade', '/api/upgrade/<int:id>', '/api/upgrade/<int:id>/<string:operation>', endpoint='upgrade-api')
+api.add_resource(Regions,
+                 '/api/regions',
+                 endpoint='regions')
 
-app.add_url_rule('/', 'home', view_func=home, methods=['GET'])
-app.add_url_rule('/logbin/viewer/<int:id>', 'viewer', view_func=viewer)
-app.add_url_rule('/upgrade', 'jobview', view_func=jobview, methods=['GET', 'POST'])
-app.add_url_rule('/upgrade/<int:id>', 'jobview-detail' ,view_func=jobview, methods=['GET', 'POST'])
+api.add_resource(Images,
+                 '/api/images',
+                 endpoint='images')
+
+api.add_resource(Log,
+                 '/api/logbin',
+                 '/api/logbin/<int:logid>',
+                 endpoint='logbin')
+
+api.add_resource(CodeUpgradeJobView,
+                 '/api/upgrade',
+                 '/api/upgrade/<int:id>',
+                 '/api/upgrade/<int:id>/<string:operation>',
+                 endpoint='upgrade-api')
+
+app.add_url_rule('/',
+                 'home',
+                 view_func=home,
+                 methods=['GET'])
+app.add_url_rule('/logbin/viewer/<int:logid>',
+                 'viewer',
+                 view_func=viewer)
+
+app.add_url_rule('/upgrade',
+                 'jobview',
+                 view_func=jobview,
+                 methods=['GET', 'POST'])
+
+app.add_url_rule('/upgrade/<int:id>',
+                 'jobview-detail',
+                 view_func=jobview,
+                 methods=['GET', 'POST'])
 
 
 if __name__ == '__main__':
@@ -175,7 +211,6 @@ if __name__ == '__main__':
 
     with open('images.yaml', 'r') as images:
         IMAGES = yaml.safe_load(images)
-
 
     app.secret_key = 'CHANGEME'
 

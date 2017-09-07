@@ -28,7 +28,9 @@ def viewer(logid):
     try:
         with open('{}/logs/{}.log'.format(os.getcwd(), logid), 'r') as fh:
             contents = fh.read()
-        return render_template('viewer.html', filename="{}.log".format(logid), contents=contents)
+        return render_template('viewer.html',
+                               filename="{}.log".format(logid),
+                               contents=contents)
     except IOError:
         abort(404)
 
@@ -47,4 +49,4 @@ class Log(Resource):
         if 'text' in request.json:
             logfile = LogFile(request.json['text'])
             print "Created logfile {}".format(logfile.id)
-            return {"url": url_for('viewer', id=logfile.id, _external=True)}
+            return {"url": url_for('viewer', logid=logfile.id, _external=True)}
