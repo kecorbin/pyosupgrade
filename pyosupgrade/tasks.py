@@ -3,6 +3,7 @@ import socket
 from platform import system as system_name
 from os import system as system_call
 import sys
+import re
 
 
 def verify_sup_redundancy(device):
@@ -59,14 +60,17 @@ def copy_remote_image(device, url, file_system="bootflash:"):
         return False, output
 
 
-def copy_image_to_slave(device, image, source_fs='bootflash:', dst_fs='slavebootflash:'):
+def copy_image_to_slave(device,
+                        image,
+                        source_fs='bootflash:',
+                        dst_fs='slavebootflash:'):
     """
     synchronize an image to the standby supervisor
     :param device: ntc_device
     :param image: str image name
     :param source_fs: str source filesystem (default is bootflash:)
     :param dst_fs: str destination filesystem (default is slavebootflash:)
-    :return: bool, str True if image is copied successfully, and any associated CLI output
+    :return: bool, str True if image is copied successfully, and any output
     """
     print "Synchronizing image to secondary supervisor"
     output = ""
@@ -93,7 +97,8 @@ def verify_image(device, image, md5hash=None):
     """
     print "Calulating md5 hash of remote file...."
     device.open()
-    output = device.native.send_command_expect('verify /md5 {}'.format(image), delay_factor=5)
+    output = device.native.send_command_expect('verify /md5 {}'.format(image),
+                                               delay_factor=5)
     match = md5hash.lower() in output
 
     if match:
@@ -148,7 +153,8 @@ def set_bootvar(device, image, file_system="bootflash:"):
     verify_bootvar_output = device.show('show running | inc boot system')
     if image in verify_bootvar_output:
 
-        output += "show running | inc boot system\n" + verify_bootvar_output + '\n'
+        output += "show running | inc boot system\n"
+        output += verify_bootvar_output + '\n'
         output += "copy running-config startup-config\n"
         output += device.show('copy running-config startup-config')
         return True, output
@@ -178,20 +184,32 @@ def verify_fpga(device, revision_reg="0x20160929"):
 
     :param device: ntc_device
     :param revision_reg: str expected revision register
-    :return: (bool, str) whether the verification was successful, and any associated output
+    :return: (bool, str) whether verification was successful, and any output
     """
     device.open()
-    mods = device.show('show mod | inc 4748-UPOE').split('\n')
-    cmd = 'show platform chassis | inc {}'
-    upgrades = device.show(cmd.format(revision_reg)).split('\n')
+    # this particular case only applies to V03 or higher modules
+    # find out how many are present in the system
+    mods = device.show('sho inventory | inc Linecard|4748')
+    regex = r"WS-X4748.+V0[3-9]"
+    matches = re.findall(regex, mods)
+    num_affected_mods = len(matches)
 
-    print "Detected {} 4748 modules".format(len(mods))
-    print "{} upgrades verified".format(len(upgrades))
-    if len(mods) == len(upgrades):
-        upgrades = "\n".join(upgrades)
-        return True, upgrades
+    # find out how many modules have the correct RevisionReg
+    cmd = 'show platform chassis | inc {}'
+    platform_output = device.show(cmd.format(revision_reg))
+    upgrades = platform_output.split('\n')
+    num_mods_upgraded = len(upgrades)
+
+    # structure output
+    msg = "Detected {} affected 4748 modules\n".format(num_affected_mods)
+    msg += "{} modules upgraded\n".format(num_mods_upgraded)
+    msg += mods + "\n"
+    msg += platform_output
+
+    if num_affected_mods == num_mods_upgraded:
+        return True, msg
     else:
-        return False, upgrades
+        return False, msg
 
 
 def verify_bootvar(device, image, **kwargs):
@@ -201,7 +219,7 @@ def verify_bootvar(device, image, **kwargs):
     :param device: ntc_device
     :param image: str image name expected
     :param kwargs:
-    :return: (bool, str) whether the verification was successful, and any associated output
+    :return: (bool, str) whether verification was successful, and any output
     """
     desired_confreg = kwargs.get("config_register", "0x2102")
     bootvar_pattern = kwargs.get("bootvar_pattern", "BOOT variable")
