@@ -29,7 +29,7 @@
   {% elif 'BACK ONLINE' in job.status %}
     {% set cls = 'progress-bar-success active' %}
     {% set value = '80' %}
-  {% elif 'VERIFYING UPGRADE' in job.status %}
+  {% elif 'VERIFYING' in job.status %}
     {% set cls = 'progress-bar-success active' %}
     {% set value = '90' %}
   {% elif 'UPGRADE SUCCESSFUL' in job.status %}
