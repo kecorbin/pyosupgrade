@@ -52,10 +52,22 @@ class CodeUpgradeJob(db.Model):
                                default="default")
     verify_upgrade_log_url = db.Column(db.String(128),
                                        default=None)
-    verify_fpga_upgrade_status = db.Column(db.String(128),
-                                           default="default")
-    verify_fpga_upgrade_status_log_url = db.Column(db.String(128),
-                                                   default=None)
+    custom_verification_1_name = db.Column(db.String(128),
+                                           default="Custom Verification 1")
+    custom_verification_1_status = db.Column(db.String(128),
+                                             default="default")
+
+    custom_verification_1_status_log_url = db.Column(db.String(128),
+                                                     default=None)
+
+    custom_verification_2_name = db.Column(db.String(128),
+                                           default="Custom Verification 2")
+
+    custom_verification_2_status = db.Column(db.String(128),
+                                             default="default")
+
+    custom_verification_2_status_log_url = db.Column(db.String(128),
+                                                     default=None)
 
     def __init__(self, device, username, password):
 
@@ -66,6 +78,25 @@ class CodeUpgradeJob(db.Model):
         self.regions_url = url_for('regions', _external=True)
         self.images_url = url_for('images', _external=True)
         self.logbin_url = url_for('logbin', _external=True)
+
+    @property
+    def steps(self):
+        """
+        this code is used to render steps in the template
+        :return:
+        """
+        steps = [('Code Transfer', self.code_upload_status, self.code_upload_log_url),
+                ('Verify Supervisor Redundancy', self.sup_redundancy_status, self.sup_redundancy_log_url),
+                ('Synchronize Code to Standby Supervisor', self.copy_code_to_slave_status, self.copy_code_to_slave_log_url),
+                ('Backup Running Config', self.backup_running_config_status, self.backup_running_config_log_url),
+                ('Set Boot Variable', self.set_bootvar_status, self.set_bootvar_status_log_url),
+                ('Verify Boot Variable', self.verify_bootvar_status, self.verify_bootvar_status_log_url),
+                ('Reload Device', self.reload_status, self.reload_status_log_url),
+                ('Verify Upgrade', self.verify_upgrade, self.verify_upgrade_log_url, self.verify_upgrade_log_url),
+                (self.custom_verification_1_name, self.custom_verification_1_status, self.custom_verification_1_status_log_url),
+                (self.custom_verification_2_name, self.custom_verification_2_status, self.custom_verification_2_status_log_url)
+              ]
+        return steps
 
     def as_dict(self):
         return {"id": self.id,
@@ -111,10 +142,18 @@ class CodeUpgradeJob(db.Model):
                     self.verify_upgrade,
                 "verify_upgrade_log_url":
                     self.verify_upgrade_log_url,
-                "verify_fpga_upgrade_status":
-                    self.verify_fpga_upgrade_status,
-                "verify_fpga_upgrade_status_log_url":
-                    self.verify_fpga_upgrade_status_log_url,
+                "custom_verification_1_name":
+                    self.custom_verification_1_name,
+                "custom_verification_1_status":
+                    self.custom_verification_1_status,
+                "custom_verification_1_status_log_url":
+                    self.custom_verification_1_status_log_url,
+                "custom_verification_2_name":
+                    self.custom_verification_1_name,
+                "custom_verification_2_status":
+                    self.custom_verification_2_status,
+                "custom_verification_2_status_log_url":
+                    self.custom_verification_2_status_log_url,
                 "regions_url":
                     self.regions_url,
                 "images_url":

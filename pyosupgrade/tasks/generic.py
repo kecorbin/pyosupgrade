@@ -17,23 +17,6 @@ def verify_sup_redundancy(device):
     return "Standby hot" in output, output
 
 
-def identify_sup(device):
-    """
-    get's supervisor information from a 4500 switch
-
-    :param device: ntc device
-    :return: str Supervisor PID
-    """
-    device.open()
-    output = device.show('show module')
-    if "WS-X45-SUP7-E" in output:
-        return "WS-X45-SUP7-E", output
-    elif "WS-X45-SUP8-E" in output:
-        return "WS-X45-SUP8-E", output
-    else:
-        return "UNKNOWN", output
-
-
 def copy_remote_image(device, url, file_system="bootflash:"):
     device.open()
     image = url.split('/')[-1]
@@ -41,7 +24,7 @@ def copy_remote_image(device, url, file_system="bootflash:"):
     device.native.send_config_set(["file prompt quiet"])
     print "Copying image from {} to {}{}".format(url, file_system, image)
     command = 'copy {} {}{}'.format(url, file_system, image)
-    output = device.native.send_command_expect(command, delay_factor=100)
+    output = device.native.send_command_expect(command, delay_factor=30)
     print output
     try:
         if 'bytes copied' in output:
@@ -79,7 +62,7 @@ def copy_image_to_slave(device,
         device.native.send_config_set(["file prompt quiet"])
         command = 'copy {}{} {}{}'.format(source_fs, image,
                                           dst_fs, image)
-        output = device.native.send_command_expect(command, delay_factor=100)
+        output = device.native.send_command_expect(command, delay_factor=30)
         return True, output
     except:
         return False, output
@@ -139,16 +122,19 @@ def set_bootvar(device, image, file_system="bootflash:"):
     print ("Updating boot statement")
     output = ""
     bootvar_output = device.show('show running | inc boot system')
+    output += bootvar_output
     existing_bootstmts = bootvar_output.split('\n')
     print "existing bootstatements = {}".format(existing_bootstmts)
+    conf_set = list()
     if len(existing_bootstmts) >= 1:
 
         for bootstmt in existing_bootstmts:
             # double check to make sure we have a boot statement
             if bootstmt.startswith('boot system'):
                 print "removing boot statement: {}".format(bootstmt)
-                device.config("no {}".format(bootstmt))
-    device.config("boot system {}{}".format(file_system, image))
+                conf_set.append("no {}".format(bootstmt))
+    conf_set.append("boot system {}{}".format(file_system, image))
+    output += device.native.send_config_set(conf_set)
 
     verify_bootvar_output = device.show('show running | inc boot system')
     if image in verify_bootvar_output:
@@ -164,7 +150,7 @@ def set_bootvar(device, image, file_system="bootflash:"):
 
 def reload_device(device, command='reload'):
     try:
-        print("Reloading device with cmmand {}".format(command))
+        print("Reloading device with command {}".format(command))
         cmds = [command, '\n']
         output = device.show_list(cmds)
         if isinstance(output, list):
@@ -178,38 +164,6 @@ def reload_device(device, command='reload'):
         pass
 
 
-def verify_fpga(device, revision_reg="0x20160929"):
-    """
-    Verifies FPGA upgrade for 4748-UPOE line cards
-
-    :param device: ntc_device
-    :param revision_reg: str expected revision register
-    :return: (bool, str) whether verification was successful, and any output
-    """
-    device.open()
-    # this particular case only applies to V03 or higher modules
-    # find out how many are present in the system
-    mods = device.show('sho inventory | inc Linecard|4748')
-    regex = r"WS-X4748.+V0[3-9]"
-    matches = re.findall(regex, mods)
-    num_affected_mods = len(matches)
-
-    # find out how many modules have the correct RevisionReg
-    cmd = 'show platform chassis | inc {}'
-    platform_output = device.show(cmd.format(revision_reg))
-    upgrades = platform_output.split('\n')
-    num_mods_upgraded = len(upgrades)
-
-    # structure output
-    msg = "Detected {} affected 4748 modules\n".format(num_affected_mods)
-    msg += "{} modules upgraded\n".format(num_mods_upgraded)
-    msg += mods + "\n"
-    msg += platform_output
-
-    if num_affected_mods == num_mods_upgraded:
-        return True, msg
-    else:
-        return False, msg
 
 
 def verify_bootvar(device, image, **kwargs):

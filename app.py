@@ -2,7 +2,8 @@ import yaml
 import os
 from flask import Flask, render_template, request, flash, redirect, url_for
 from flask_restful import Resource, Api
-from pyosupgrade.procedures import IOSUpgrade
+# from pyosupgrade.procedures import IOSUpgrade
+from pyosupgrade.procedures.cat4500 import Catalyst4500Upgrade
 from pyosupgrade.views.logbin import Log, viewer
 from pyosupgrade.models import db, CodeUpgradeJob
 
@@ -12,7 +13,8 @@ app = Flask(__name__)
 api = Api(app)
 # https://stackoverflow.com/questions/33738467/how-do-i-know-if-i-can-disable-sqlalchemy-track-modifications
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-path = os.path.join(basedir + 'upgrade.db')
+path = os.path.join(basedir + '/upgrade.db')
+print path
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + path
 db.init_app(app)
 with app.app_context():
@@ -26,7 +28,7 @@ METHOD_OF_PROCEDURES = {
     "csr1000v": {"description": "a fake mop",
                  "procedure": None},
     "cat4500-3.8.4-w-fpga": {"description": "Upgrade Catalyst 4500 with FPGA upgrade validation",
-                             "procedure": IOSUpgrade}
+                             "procedure": Catalyst4500Upgrade}
 }
 
 
@@ -228,6 +230,5 @@ if __name__ == '__main__':
         IMAGES = yaml.safe_load(images)
 
     app.secret_key = 'CHANGEME'
-
     app.debug = True
     app.run()

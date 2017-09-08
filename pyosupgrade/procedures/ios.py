@@ -4,8 +4,8 @@ import time
 import requests
 from netmiko.ssh_exception import NetMikoTimeoutException
 from pyntc import ntc_device as NTC
-from pyosupgrade import BaseUpgrade
-from pyosupgrade.tasks import tasks
+from pyosupgrade.procedures import BaseUpgrade
+from pyosupgrade.tasks import generic
 
 
 class IOSUpgrade(BaseUpgrade):
@@ -14,16 +14,18 @@ class IOSUpgrade(BaseUpgrade):
         print('starting staging job')
         self._attributes = self.get_job_details()
         self.device = self._attributes['device']
+        self.register_custom_tasks()
         self.log("Updated job details: {}".format(self._attributes))
         self.status = "CONNECTING"
+        self._pyntc = None
 
         try:
-            device = NTC(host=self.device,
-                         username=self.username,
-                         password=self.password,
-                         device_type="cisco_ios_ssh")
-
-            hostname = device.facts['hostname']
+            self._pyntc = NTC(host=self.device,
+                              username=self.username,
+                              password=self.password,
+                              device_type="cisco_ios_ssh")
+            device = self._pyntc
+            hostname = self._pyntc.facts['hostname']
 
         except Exception:
             self.status = "FAILED CONNECT"
@@ -36,7 +38,7 @@ class IOSUpgrade(BaseUpgrade):
             print("Unable to determine regional server")
 
         self.status = "IDENTIFY PLATFORM"
-        sup_type, sup_output = tasks.identify_sup(device)
+        sup_type, sup_output = self.identify_platform()
 
         print("Supervisor identified as {}".format(sup_type))
 
@@ -50,7 +52,7 @@ class IOSUpgrade(BaseUpgrade):
         self.status = "TRANSFERRING"
         print("Initatiating file transfer...")
         url = "tftp://{}/{}".format(regional_fs, image)
-        transfer, transfer_output = tasks.copy_remote_image(device, url)
+        transfer, transfer_output = generic.copy_remote_image(device, url)
         logbin_url = self.logbin(transfer_output)
         self.code_upload_log_url = logbin_url
         if transfer:
@@ -63,7 +65,7 @@ class IOSUpgrade(BaseUpgrade):
 
         # determine whether there is a sup redundancy
         self.status = "VERIFY_SUP_REDUNDANCY"
-        result = tasks.verify_sup_redundancy(device)
+        result = generic.verify_sup_redundancy(device)
         sup_redundancy, sup_redundancy_output = result
         self.sup_redundancy_log_url = self.logbin(sup_redundancy_output)
         if sup_redundancy:
@@ -71,7 +73,7 @@ class IOSUpgrade(BaseUpgrade):
             self.sup_redundancy_status = "success"
 
             self.status = "SYNCHRONIZING IMAGE"
-            result = tasks.copy_image_to_slave(device, image)
+            result = generic.copy_image_to_slave(device, image)
             slave_copy, slave_copy_output = result
             self.copy_code_to_slave_log_url = self.logbin(slave_copy_output)
             if slave_copy:
@@ -129,7 +131,7 @@ class IOSUpgrade(BaseUpgrade):
 
         # Change bootvar
         self.status = "SETTING BOOT VARIABLE"
-        result = tasks.set_bootvar(connected, image=self.target_image)
+        result = generic.set_bootvar(connected, image=self.target_image)
         bootvar_result, bootvar_output = result
         if bootvar_output:
             logbin_url = self.logbin(bootvar_output)
@@ -141,7 +143,7 @@ class IOSUpgrade(BaseUpgrade):
 
         # Verify bootvar
         self.status = "VERIFY BOOT VARIABLE"
-        result = tasks.verify_bootvar(connected, self.target_image)
+        result = generic.verify_bootvar(connected, self.target_image)
         valid_bootvar, valid_bootvar_output = result
 
         if valid_bootvar:
@@ -156,8 +158,8 @@ class IOSUpgrade(BaseUpgrade):
 
         # Reload
         self.status = "RELOADING"
-        reload_output = tasks.reload_device(connected,
-                                            command='redundancy reload shelf')
+        reload_output = generic.reload_device(connected,
+                                              command='redundancy reload shelf')
         logbin_url = self.logbin("{}".format(reload_output))
         self.reload_status_log_url = logbin_url
 
@@ -170,7 +172,7 @@ class IOSUpgrade(BaseUpgrade):
             exit()
 
         # wait for device to come line
-        if reloaded and tasks.wait_for_reboot(self.device):
+        if reloaded and generic.wait_for_reboot(self.device):
             self.status = "BACK ONLINE, WAITING FOR BOOTUP"
             # linecards may still be booting/upgrading
             time.sleep(300)
@@ -196,19 +198,11 @@ class IOSUpgrade(BaseUpgrade):
         else:
             self.verify_upgrade = "danger"
 
-        print("Verify FPGA")
-        self.status = "VERIFYING FPGA UPGRADE"
-        fpga_status, fpga_output = tasks.verify_fpga(online)
-        logbin_url = self.logbin(fpga_output)
-        self.verify_fpga_upgrade_status_log_url = logbin_url
 
-        if fpga_status:
-            self.verify_fpga_upgrade_status = "success"
+        custom_1 = self.custom_verification_1()
+        custom_2 = self.custom_verification_2()
 
-        else:
-            self.verify_fpga_upgrade_status = "danger"
-
-        if online and fpga_status and upgraded:
+        if all([online, upgraded, custom_1, custom_2]):
             self.status = "UPGRADE SUCCESSFUL"
             print("Upgrade was successful")
         else:
@@ -217,3 +211,9 @@ class IOSUpgrade(BaseUpgrade):
 
         end = datetime.datetime.now()
         print("Upgrade for {} ended at {}".format(hostname, end))
+
+    def custom_verification_1(self):
+        return True
+
+    def custom_verification_2(self):
+        return True
