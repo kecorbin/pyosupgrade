@@ -2,7 +2,8 @@ import yaml
 import os
 from flask import Flask, render_template, request, flash, redirect, url_for
 from flask_restful import Resource, Api
-from pyosupgrade.workflows import IOSUpgrade
+# from pyosupgrade.procedures import IOSUpgrade
+from pyosupgrade.procedures.cat4500 import Catalyst4500Upgrade
 from pyosupgrade.views.logbin import Log, viewer
 from pyosupgrade.models import db, CodeUpgradeJob
 
@@ -12,13 +13,23 @@ app = Flask(__name__)
 api = Api(app)
 # https://stackoverflow.com/questions/33738467/how-do-i-know-if-i-can-disable-sqlalchemy-track-modifications
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-path = os.path.join(basedir + 'upgrade.db')
+path = os.path.join(basedir + '/upgrade.db')
+print path
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + path
 db.init_app(app)
 with app.app_context():
     db.create_all()
 
 LOGBIN_URL = "http://127.0.0.1:5000/api/logbin"
+
+METHOD_OF_PROCEDURES = {
+    "asr1000": {"description": "a fake mop",
+                 "procedure": None},
+    "csr1000v": {"description": "a fake mop",
+                 "procedure": None},
+    "cat4500-3.8.4-w-fpga": {"description": "Upgrade Catalyst 4500 with FPGA upgrade validation",
+                             "procedure": Catalyst4500Upgrade}
+}
 
 
 @app.errorhandler(404)
@@ -32,7 +43,9 @@ def home():
 
 def thread_launcher(job, request, operation):
     """
-    initiates an IOS upgrade job from a request via webform or REST API
+    this is essentially a class factory which initiates an
+    IOS upgrade job from a request via webform or REST API
+
     :param job: CodeUpgradeJob an instance of CodeUpgradeJob
     :param request: flask.request a flask requst
     :param operation: string containing the desired process e.g start_staging
@@ -44,12 +57,14 @@ def thread_launcher(job, request, operation):
     url = url_for('upgrade-api', id=job.id, _external=True)
     if request.json:
         user, passwd = request.json['username'], request.json['password']
+        thread = IOSUpgrade(url, user, passwd)
     elif request.form:
         user, passwd = request.form['username'], request.form['password']
+        mop = request.form['mop']
+        print request.form
+        thread = METHOD_OF_PROCEDURES[mop]['procedure'](url, user, passwd)
 
     # start an upgrade thread which uses the job api for updating status
-    thread = IOSUpgrade(url, user, passwd)
-
     # depending on operation we will trigger the appropriate process
     # thread.start_upgrade()
     #
@@ -65,13 +80,15 @@ def jobview(id=None):
             job = CodeUpgradeJob.query.filter_by(id=id).first()
             return render_template('upgrade-detail.html',
                                    title="Job Detail",
-                                   job=job)
+                                   job=job,
+                                   procedures=METHOD_OF_PROCEDURES)
         else:
             jobs = CodeUpgradeJob.query.all()
             return render_template('upgrade.html',
                                    title='Code Staging',
                                    logo='/static/img/4500.jpg',
-                                   jobs=jobs)
+                                   jobs=jobs,
+                                   procedures=METHOD_OF_PROCEDURES)
 
     elif request.method == 'POST':
         # handle the case where this is an existing job
@@ -213,6 +230,5 @@ if __name__ == '__main__':
         IMAGES = yaml.safe_load(images)
 
     app.secret_key = 'CHANGEME'
-
     app.debug = True
     app.run()

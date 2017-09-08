@@ -45,20 +45,21 @@ $(document).on('click', '.panel-heading span.clickable', function(e){
     </tbody>
   </table>
 
-{% for item in [('Code Transfer', job.code_upload_status, job.code_upload_log_url),
-                ('Verify Supervisor Redundancy', job.sup_redundancy_status, job.sup_redundancy_log_url),
-                ('Synchronize Code to Standby Supervisor', job.copy_code_to_slave_status, job.copy_code_to_slave_log_url),
-                ('Backup Running Config', job.backup_running_config_status, job.backup_running_config_log_url),
-                ('Set Boot Variable', job.set_bootvar_status, job.set_bootvar_status_log_url),
-                ('Verify Boot Variable', job.verify_bootvar_status, job.verify_bootvar_status_log_url),
-                ('Reload Device', job.reload_status, job.reload_status_log_url),
-                ('Verify Upgrade', job.verify_upgrade, job.verify_upgrade_log_url, job.verify_upgrade_log_url),
-                ('Verify FPGA Upgrades', job.verify_fpga_upgrade_status, job.verify_fpga_upgrade_status_log_url)
-              ]
+{#{% for item in [('Code Transfer', job.code_upload_status, job.code_upload_log_url),#}
+{#                ('Verify Supervisor Redundancy', job.sup_redundancy_status, job.sup_redundancy_log_url),#}
+{#                ('Synchronize Code to Standby Supervisor', job.copy_code_to_slave_status, job.copy_code_to_slave_log_url),#}
+{#                ('Backup Running Config', job.backup_running_config_status, job.backup_running_config_log_url),#}
+{#                ('Set Boot Variable', job.set_bootvar_status, job.set_bootvar_status_log_url),#}
+{#                ('Verify Boot Variable', job.verify_bootvar_status, job.verify_bootvar_status_log_url),#}
+{#                ('Reload Device', job.reload_status, job.reload_status_log_url),#}
+{#                ('Verify Upgrade', job.verify_upgrade, job.verify_upgrade_log_url, job.verify_upgrade_log_url),#}
+{#                ('Custom Verification 1', job.custom_verification_1_status, job.custom_verification_1_status_log_url),#}
+{#                ('Custom Verification 2', job.custom_verification_2_status, job.custom_verification_2_status_log_url)#}
+{#              ]#}
+{##}
+{#%}#}
 
-%}
-
-
+{%  for item in job.steps %}
         <div class="row">
           <div class="panel panel-{{ item.1 }}">
             <div class="panel-heading">
@@ -76,41 +77,6 @@ $(document).on('click', '.panel-heading span.clickable', function(e){
         </div>
 
 {% endfor %}
-  <!-- <div class="row">
-    <div class="panel panel-{{ job.code_upload_status }}">
-      <div class="panel-heading">
-        <h3 class="panel-title">Code Transfer </h3>
-        <span class="pull-right clickable panel-collapsed"><i class="glyphicon glyphicon-chevron-down"></i></span>
-      </div>
-      <div class="panel-body" style="display: none;">
-        <iframe frameBorder="0" style="width: 100%; height: 50%;" src="{{ job.code_upload_log_url }}"></iframe>
-      </div>
-    </div>
-  </div>
-
-  <div class="row">
-    <div class="panel panel-{{ job.sup_redundancy_status }}">
-      <div class="panel-heading">
-        <h3 class="panel-title">Verify Supervisor Redundancy </h3>
-        <span class="pull-right clickable panel-collapsed"><i class="glyphicon glyphicon-chevron-down"></i></span>
-      </div>
-      <div class="panel-body" style="display: none;">
-        <iframe frameBorder="0" style="width: 100%;  height: 50%;" src="{{ job.sup_redundancy_log_url }}"></iframe>
-
-      </div>
-    </div>
-  </div>
-  <div class="row">
-    <div class="panel panel-{{job.copy_code_to_slave_status}}">
-      <div class="panel-heading">
-        <h3 class="panel-title">Synchronize Code to Standby Supervisor </h3>
-        <span class="pull-right clickable panel-collapsed"><i class="glyphicon glyphicon-chevron-down"></i></span>
-      </div>
-      <div class="panel-body" style="display: none;">
-        <iframe frameBorder="0" style="width: 100%;  height: 50%%;" src="{{ job.copy_code_to_slave_log_url }}"></iframe>
-      </div>
-    </div>
-  </div> -->
 
 </div>
 
