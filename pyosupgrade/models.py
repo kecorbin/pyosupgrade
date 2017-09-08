@@ -149,7 +149,7 @@ class CodeUpgradeJob(db.Model):
                 "custom_verification_1_status_log_url":
                     self.custom_verification_1_status_log_url,
                 "custom_verification_2_name":
-                    self.custom_verification_1_name,
+                    self.custom_verification_2_name,
                 "custom_verification_2_status":
                     self.custom_verification_2_status,
                 "custom_verification_2_status_log_url":
