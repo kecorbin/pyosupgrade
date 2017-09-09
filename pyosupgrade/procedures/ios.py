@@ -10,6 +10,8 @@ from pyosupgrade.tasks import generic
 
 class IOSUpgrade(BaseUpgrade):
 
+    reload_command = 'reload'
+
     def staging_process(self):
         print('starting staging job')
         self._attributes = self.get_job_details()
@@ -159,7 +161,7 @@ class IOSUpgrade(BaseUpgrade):
         # Reload
         self.status = "RELOADING"
         reload_output = generic.reload_device(connected,
-                                              command='redundancy reload shelf')
+                                              command=self.reload_command)
         logbin_url = self.logbin("{}".format(reload_output))
         self.reload_status_log_url = logbin_url
 
@@ -188,16 +190,32 @@ class IOSUpgrade(BaseUpgrade):
                      password=self.password,
                      device_type="cisco_ios_ssh")
 
-        image_output = online.show('sho ver | inc System image')
-        upgraded = self.target_image in image_output
+        # here we are formatting the output that will be pushed to the logbin
+        # so that it will be able to be viewed as an iframe
+        image_output = '\nDetecting image name with `sho ver | inc image`\n'
+        image_output += online.show('sho ver | inc image')
+        image_output += '\nDetecting uptime with `show ver | inc ptime`\n'
+        image_output += online.show('sho ver | inc ptime')
+
+        # some platforms may have limitation in how many chars of the boot image display
+        # so we'll do our part to shorten our image name
+        match_pattern = self.target_image.split('.')[0]
+        upgraded = match_pattern in image_output
+        image_output += "\nChecking if {} is present in the output...".format(match_pattern)
         if upgraded:
+            print("\nFound {} in command output".format(self.target_image))
+            image_output += "it is"
             self.verify_upgrade = "success"
-            logbin_url = self.logbin(image_output)
-            self.verify_upgrade_log_url = logbin_url
 
         else:
+            print("\nCould not find {} in command output\n".format(self.target_image))
+            image_output += "rur roh"
             self.verify_upgrade = "danger"
 
+        # ship the log file and move on
+        print image_output
+        logbin_url = self.logbin(image_output)
+        self.verify_upgrade_log_url = logbin_url
 
         custom_1 = self.custom_verification_1()
         custom_2 = self.custom_verification_2()
