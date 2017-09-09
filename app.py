@@ -2,8 +2,10 @@ import yaml
 import os
 from flask import Flask, render_template, request, flash, redirect, url_for
 from flask_restful import Resource, Api
-# from pyosupgrade.procedures import IOSUpgrade
+from pyosupgrade.procedures.ios import IOSUpgrade
 from pyosupgrade.procedures.cat4500 import Catalyst4500Upgrade
+from pyosupgrade.procedures.asr1000 import ASR1000Upgrade
+from pyosupgrade.procedures.csr1000 import CSR1000Upgrade
 from pyosupgrade.views.logbin import Log, viewer
 from pyosupgrade.models import db, CodeUpgradeJob
 
@@ -24,9 +26,9 @@ LOGBIN_URL = "http://127.0.0.1:5000/api/logbin"
 
 METHOD_OF_PROCEDURES = {
     "asr1000": {"description": "a fake mop",
-                 "procedure": None},
+                 "procedure": ASR1000Upgrade},
     "csr1000v": {"description": "a fake mop",
-                 "procedure": None},
+                 "procedure": CSR1000Upgrade},
     "cat4500-3.8.4-w-fpga": {"description": "Upgrade Catalyst 4500 with FPGA upgrade validation",
                              "procedure": Catalyst4500Upgrade}
 }
@@ -166,6 +168,14 @@ class CodeUpgradeJobView(Resource):
 
                 return job.as_dict()
 
+    def delete(self, id=None):
+        try:
+            job = CodeUpgradeJob.query.filter_by(id=id).first()
+            print "deleting job {}".format(job)
+            job.delete()
+            return {'status': 'deleted'}, 200
+        except AttributeError:
+            return {"status": "not found"}, 404
 
 class Images(Resource):
     """
