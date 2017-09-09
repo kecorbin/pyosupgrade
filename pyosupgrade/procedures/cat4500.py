@@ -4,6 +4,9 @@ import re
 
 class Catalyst4500Upgrade(IOSUpgrade):
 
+    check_sup_redundancy = True
+    reload_command = "redundancy reload shelf"
+
     def register_custom_tasks(self):
         self.custom_verification_1_name = "Verify FPGA Upgrades"
         self.custom_verification_2_name = "Verify Supervisor TX Queues"

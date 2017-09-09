@@ -1,16 +1,33 @@
 import datetime
 import time
-
 import requests
 from netmiko.ssh_exception import NetMikoTimeoutException
-from pyntc import ntc_device as NTC
-from pyosupgrade.procedures import BaseUpgrade
 from pyosupgrade.tasks import generic
+from ios import IOSUpgrade
+from pyntc import ntc_device as NTC
 
 
-class IOSUpgrade(BaseUpgrade):
+class ASR1000Upgrade(IOSUpgrade):
 
-    reload_command = 'reload'
+    reload_command = "reload"
+
+    def identify_platform(self):
+        """
+        get's supervisor information from an ASR1000 this is used to
+        identify the correct image to use
+
+        :return: str Supervisor PID
+        """
+
+        output = self._pyntc.show('show platform')
+        if "ASR1000-RP2" in output:
+            return "ASR1000-RP2", output
+        # TODO verify this is the appropriate RP1 output
+        elif "ASR1000-RP1" in output:
+            return "ASR1000-RP1", output
+        else:
+            return "UNKNOWN", output
+
 
     def staging_process(self):
         print('starting staging job')
@@ -48,44 +65,30 @@ class IOSUpgrade(BaseUpgrade):
         images = requests.get(self.images_url,
                               headers=self.request_headers).json()
         image = images[sup_type]['filename']
+
         print("Using image {}".format(image))
         self.target_image = image
 
-        self.status = "TRANSFERRING"
+        self.status = "TRANSFERRING IOS"
         print("Initatiating file transfer...")
         url = "tftp://{}/{}".format(regional_fs, image)
-        transfer, transfer_output = generic.copy_remote_image(device, url)
+        ios_transfer, ios_transfer_output = generic.copy_remote_image(device, url)
+        rommon = images[sup_type]['rommon']
+
+        self.status = "TRANSFERRING ROMMON"
+        print("Initatiating file transfer...")
+        rommon_url = "tftp://{}/{}".format(regional_fs, rommon)
+        rommon_transfer, rommon_transfer_output = generic.copy_remote_image(device, rommon_url)
+        transfer_output = "{}\n\n{}".format(ios_transfer_output, rommon_transfer_output)
         logbin_url = self.logbin(transfer_output)
         self.code_upload_log_url = logbin_url
-        if transfer:
+        if ios_transfer and rommon_transfer:
             print('File Transfer Suceeded')
             self.code_upload_status = "success"
         else:
             print('File Transfer Failed')
             self.code_upload_status = "danger"
             exit()
-
-        # determine whether there is a sup redundancy
-        self.status = "VERIFY_SUP_REDUNDANCY"
-        result = generic.verify_sup_redundancy(device)
-        sup_redundancy, sup_redundancy_output = result
-        self.sup_redundancy_log_url = self.logbin(sup_redundancy_output)
-        if sup_redundancy:
-            print('Redundant Supervisors detected\n')
-            self.sup_redundancy_status = "success"
-
-            self.status = "SYNCHRONIZING IMAGE"
-            result = generic.copy_image_to_slave(device, image)
-            slave_copy, slave_copy_output = result
-            self.copy_code_to_slave_log_url = self.logbin(slave_copy_output)
-            if slave_copy:
-                print('File Transfer Suceeded')
-                self.copy_code_to_slave_status = "success"
-            else:
-                self.copy_code_to_slave_status = "danger"
-        else:
-            print('Sups not redundant')
-            self.copy_code_to_slave_status = "warning"
 
         self.status = "CODE STAGING SUCCESSFUL"
 
@@ -199,7 +202,7 @@ class IOSUpgrade(BaseUpgrade):
 
         # some platforms may have limitation in how many chars of the boot image display
         # so we'll do our part to shorten our image name
-        match_pattern = self.target_image.split('.')[0]
+        match_pattern = self.target_image.split('.bin')[0]
         upgraded = match_pattern in image_output
         image_output += "\nChecking if {} is present in the output...".format(match_pattern)
         if upgraded:

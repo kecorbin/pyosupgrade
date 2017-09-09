@@ -7,3 +7,7 @@ FR:
   regional_fs: 10.250.6.20
 BF:
   regional_fs: 10.122.1.10
+AS:
+  regional_fs: 10.122.1.10
+KC:
+  regional_fs: 192.168.51.1

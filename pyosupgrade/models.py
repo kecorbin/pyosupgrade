@@ -9,6 +9,8 @@ class CodeUpgradeJob(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     device = db.Column(db.String(64))
     username = db.Column(db.String(32))
+    mop = db.Column(db.String(64),
+                    default="unknown")
 
     images_url = db.Column(db.String(128))
     regions_url = db.Column(db.String(128))
@@ -69,12 +71,12 @@ class CodeUpgradeJob(db.Model):
     custom_verification_2_status_log_url = db.Column(db.String(128),
                                                      default=None)
 
-    def __init__(self, device, username, password):
+    def __init__(self, device, username, password, mop_name):
 
         self.device = device
         self.username = username
         self.password = password
-
+        self.mop = mop_name
         self.regions_url = url_for('regions', _external=True)
         self.images_url = url_for('images', _external=True)
         self.logbin_url = url_for('logbin', _external=True)
@@ -104,6 +106,8 @@ class CodeUpgradeJob(db.Model):
                     self.device,
                 "username":
                     self.username,
+                "mop":
+                    self.mop,
                 "status":
                     self.status,
                 "target_image":
@@ -174,6 +178,10 @@ class CodeUpgradeJob(db.Model):
 
     def save(self):
         db.session.add(self)
+        db.session.commit()
+
+    def delete(self):
+        db.session.delete(self)
         db.session.commit()
 
     def update_status(self, status):

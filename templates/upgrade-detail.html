@@ -21,9 +21,33 @@ $(document).on('click', '.panel-heading span.clickable', function(e){
 })
 </script>
 <div class="container-fluid">
+
   <div class="row">
+
     <div class="col-md-12 text-center">
-     <button onclick="showCredentialsModal();" class="btn btn-default btn-lg">Proceed With Upgrade</button>
+
+        <!---back to job view button--->
+        <button type="button" onclick="location.href='/upgrade'" class="btn btn-info btn-lg pull-left">
+                <span class="glyphicon glyphicon-th-list"></span>
+                  Back to Job View
+
+        </button>
+
+        <!---operation button--->
+        {% if "STAGING SUCCESSFUL" in job.status  %}
+            {% set proceed_cls = 'btn-success' %}
+            {% set txt = "Looks good, lets do it!" %}
+        {% else %}
+            {% set proceed_cls = 'btn-warning' %}
+            {% set txt = "PROCEED WITH CAUTION" %}
+        {% endif %}
+        <button onclick="showCredentialsModal();" class="btn {{ proceed_cls }} btn-lg">{{ txt }}</button>
+
+        <!---operation button--->
+        <button onclick="confirmDeleteJob();" class="btn btn-danger btn-lg pull-right">
+        <span class="glyphicon glyphicon-trash"></span>  Delete Job
+        </button>
+
     </div>
   </div>
 
@@ -31,6 +55,8 @@ $(document).on('click', '.panel-heading span.clickable', function(e){
     <table class="table table-bordered">
     <thead>
       <tr>
+        <th>Job ID</th>
+        <th>Procedure</th>
         <th>Device IP/Hostname</th>
         <th>Initiated By</th>
         <th>Status</th>
@@ -38,26 +64,14 @@ $(document).on('click', '.panel-heading span.clickable', function(e){
     </thead>
     <tbody>
       <tr>
+        <td>{{ job.id }}</td>
+        <td>{{ job.mop }}</td>
         <td>{{job.device}}</td>
         <td>{{job.username}}</td>
         <td>{{job.status}}</td>
       </tr>
     </tbody>
   </table>
-
-{#{% for item in [('Code Transfer', job.code_upload_status, job.code_upload_log_url),#}
-{#                ('Verify Supervisor Redundancy', job.sup_redundancy_status, job.sup_redundancy_log_url),#}
-{#                ('Synchronize Code to Standby Supervisor', job.copy_code_to_slave_status, job.copy_code_to_slave_log_url),#}
-{#                ('Backup Running Config', job.backup_running_config_status, job.backup_running_config_log_url),#}
-{#                ('Set Boot Variable', job.set_bootvar_status, job.set_bootvar_status_log_url),#}
-{#                ('Verify Boot Variable', job.verify_bootvar_status, job.verify_bootvar_status_log_url),#}
-{#                ('Reload Device', job.reload_status, job.reload_status_log_url),#}
-{#                ('Verify Upgrade', job.verify_upgrade, job.verify_upgrade_log_url, job.verify_upgrade_log_url),#}
-{#                ('Custom Verification 1', job.custom_verification_1_status, job.custom_verification_1_status_log_url),#}
-{#                ('Custom Verification 2', job.custom_verification_2_status, job.custom_verification_2_status_log_url)#}
-{#              ]#}
-{##}
-{#%}#}
 
 {%  for item in job.steps %}
         <div class="row">
