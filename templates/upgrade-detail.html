@@ -23,21 +23,27 @@ $(document).on('click', '.panel-heading span.clickable', function(e){
 <div class="container-fluid">
 
   <div class="row">
+
     <div class="col-md-12 text-center">
+
+        <!---back to job view button--->
         <button type="button" onclick="location.href='/upgrade'" class="btn btn-info btn-lg pull-left">
                 <span class="glyphicon glyphicon-th-list"></span>
                   Back to Job View
 
         </button>
+
+        <!---operation button--->
         {% if "STAGING SUCCESSFUL" in job.status  %}
             {% set proceed_cls = 'btn-success' %}
             {% set txt = "Looks good, lets do it!" %}
         {% else %}
-            {% set proceed_cls = 'btn-danger' %}
+            {% set proceed_cls = 'btn-warning' %}
             {% set txt = "PROCEED WITH CAUTION" %}
         {% endif %}
         <button onclick="showCredentialsModal();" class="btn {{ proceed_cls }} btn-lg">{{ txt }}</button>
 
+        <!---operation button--->
         <button onclick="confirmDeleteJob();" class="btn btn-danger btn-lg pull-right">
         <span class="glyphicon glyphicon-trash"></span>  Delete Job
         </button>
@@ -50,6 +56,7 @@ $(document).on('click', '.panel-heading span.clickable', function(e){
     <thead>
       <tr>
         <th>Job ID</th>
+        <th>Procedure</th>
         <th>Device IP/Hostname</th>
         <th>Initiated By</th>
         <th>Status</th>
@@ -58,6 +65,7 @@ $(document).on('click', '.panel-heading span.clickable', function(e){
     <tbody>
       <tr>
         <td>{{ job.id }}</td>
+        <td>{{ job.mop }}</td>
         <td>{{job.device}}</td>
         <td>{{job.username}}</td>
         <td>{{job.status}}</td>

@@ -122,7 +122,8 @@ def jobview(id=None):
                     print "Creating code upload job for {}".format(d)
                     job = CodeUpgradeJob(d,
                                          payload['username'],
-                                         payload['password'])
+                                         payload['password'],
+                                         payload['mop'])
                     db.session.add(job)
                     db.session.commit()
                     thread_launcher(job, request, "start_staging")

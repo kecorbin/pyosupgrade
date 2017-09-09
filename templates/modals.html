@@ -1,51 +1,49 @@
 <div class="modal fade" id="newStagingModal">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h4 class="modal-title">Starting a new Code Staging Task</h4>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <form action="#" method="POST">
-        <div class="modal-body">
-          <div class="form-group row">
-            <label for="mop" class="col-sm-2 col-form-label">Select Procedure:</label>
-            <div class="col-sm-10">
-                <select required name="mop" class="form-control" id="mop">
-                    <option value="">Please select a MOP</option>
-                    {%  for mop in procedures.keys() %}
-                        <option>{{ mop }}</option>
-                    {% endfor %}
-                </select>
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Starting a new Code Staging Task</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
             </div>
-          </div>
-          <div class="form-group row">
-            <label for="hostnames-input" class="col-sm-2 col-form-label">Device List</label>
-            <div class="col-sm-10">
-              <textarea required name="hostnames" rows="10" class="form-control" type="text" placeholder="Enter hostname or IP one per line" id="hostnames-input"></textarea>
-            </div>
-          </div>
-          <div class="form-group row">
-            <label for="username-input" class="col-sm-2 col-form-label">Username</label>
-            <div class="col-sm-10">
-              <input required name="username" class="form-control" type="text" placeholder="admin" id="username-input">
-            </div>
-          </div>
-          <div class="form-group row">
-            <label for="inputPassword" class="col-sm-2 col-form-label">Password</label>
-            <div class="col-sm-10">
-              <input required name="password" type="password" class="form-control" id="inputPassword" placeholder="Password">
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-lg btn-primary btn-block" type="submit">make it happen</button>
+            <div class="modal-body">
+                <form action="#" method="POST">
+                    <div class="form-group row">
+                        <label for="mop" class="col-sm-2 col-form-label">Select Procedure:</label>
+                        <div class="col-sm-10">
+                            <select required name="mop" class="form-control" id="mop">
+                                <option value="">Please select a MOP</option>
+                                {%  for mop in procedures.keys() %}
+                                    <option>{{ mop }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="hostnames-input" class="col-sm-2 col-form-label">Device List</label>
+                        <div class="col-sm-10">
+                            <textarea required name="hostnames" rows="10" class="form-control" type="text" placeholder="Enter hostname or IP one per line" id="hostnames-input"></textarea>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="username-input" class="col-sm-2 col-form-label">Username</label>
+                        <div class="col-sm-10">
+                            <input required name="username" class="form-control" type="text" placeholder="admin" id="username-input">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="inputPassword" class="col-sm-2 col-form-label">Password</label>
+                        <div class="col-sm-10">
+                            <input required name="password" type="password" class="form-control" id="inputPassword" placeholder="Password">
+                        </div>
+                    </div>
+                    <button class="btn btn-lg btn-primary btn-block" type="submit">make it happen</button>
+                </form>
 
+            </div>
         </div>
-      </form>
     </div>
-  </div>
 </div>
 
 <!--modal for collecting user credentials-->
@@ -53,71 +51,79 @@
     <div class="modal-dialog modal-md">
         <div class="modal-content">
             <div class="modal-header">
-                <h4 class="modal-title">
-                    Please Enter your device credentials
-                </h4>
+                <h4 class="modal-title">Please Enter your device credentials</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
             </div>
             <div class="modal-body">
+                <form action="#" class="form-signin" method="post">
+                    <h5 class="form-signin-heading">dont worry, we would never store your credentials</h5>
+                    <div class="form-group row">
+                        <label for="mop" class="col-sm-2 col-form-label">Select Procedure:</label>
+                        <div class="col-sm-10">
+                            {% if job %}
+                                {% set select_class = "disabled" %}
+                                {% if job.mop %}
+                                    <input type="hidden" name="mop" value="{{ job.mop }}" />
+                                {% endif %}
+                            {% endif %}
+                            <select {{ select_class }} required name="mop" class="form-control" id="mop">
+                                <option value="">Please select a MOP</option>
+                                {%  for mop in procedures.keys() %}
 
-                <div class="wrapper">
-                    <form action="#" class="form-signin" method="post">
-                        <h5 class="form-signin-heading">dont worry, we would never store your credentials</h5>
-                          <div class="form-group row">
-                            <label for="mop" class="col-sm-2 col-form-label">Select Procedure:</label>
-                            <div class="col-sm-10">
-                                <select required name="mop" class="form-control" id="mop">
-                                        <option value="">Please select a MOP</option>
-                                    {%  for mop in procedures.keys() %}
+                                    {% if job %}
+                                        <option selected>{{ job.mop }}</option>
+                                    {% else %}
                                         <option>{{ mop }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                          </div>
-                          <div class="form-group row">
-                            <label for="username-input" class="col-sm-2 col-form-label">Username</label>
-                            <div class="col-sm-10">
-                              <input required name="username" class="form-control" type="text" placeholder="admin" id="username-input">
-                            </div>
-                          </div>
-                          <div class="form-group row">
-                            <label for="inputPassword" class="col-sm-2 col-form-label">Password</label>
-                            <div class="col-sm-10">
-                              <input required name="password" type="password" class="form-control" id="inputPassword" placeholder="Password">
-                            </div>
-                          </div>
-{#                        <input type="text" class="form-control" name="username" placeholder="username" required="" autofocus="" />#}
-{#                        <input type="password" class="form-control" name="password" placeholder="password" required=""/>#}
-                        <button class="btn btn-lg btn-primary btn-block" onclick="submitCreds()">Login</button>
-                    </form>
-                </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="username-input" class="col-sm-2 col-form-label">Username</label>
+                        <div class="col-sm-10">
+                            <input required name="username" class="form-control" type="text" placeholder="admin" id="username-input">
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <label for="inputPassword" class="col-sm-2 col-form-label">Password</label>
+                        <div class="col-sm-10">
+                            <input required name="password" type="password" class="form-control" id="inputPassword" placeholder="Password">
+                        </div>
+                    </div>
+                    <button class="btn btn-lg btn-primary btn-block" onclick="submitCreds()">Login</button>
+                </form>
             </div>
         </div>
     </div>
+</div>
 </div>
 
 
 <!--modal for confirming a job should be delete-->
 <div class="modal fade" id="confirmDelete">
-  <div class="modal-dialog" role="document">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h4 class="modal-title">Are you sure you want to delete this job?</h4>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <form action="#" method="DELETE">
-        <div class="modal-body">
-          <div class="form-group row">
-            This action cannot be undone
-          </div>
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Are you sure you want to delete this job?</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form action="#" method="DELETE">
+                <div class="modal-body">
+                    <div class="form-group row">
+                        This action cannot be undone
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-lg btn-danger btn-block" onclick="deleteJob({% if job %}{{ job.id }}{% endif %})">
+                        yes, i'm really sure
+                    </button>
+                </div>
+            </form>
         </div>
-        <div class="modal-footer">
-          <button class="btn btn-lg btn-danger btn-block" onclick="deleteJob({% if job %}{{ job.id }}{% endif %})">
-              yes, i'm really sure
-          </button>
-        </div>
-      </form>
     </div>
-  </div>
 </div>
