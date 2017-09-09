@@ -59,6 +59,7 @@ def copy_image_to_slave(device,
     output = ""
     try:
         device.open()
+        # eventually we should just keep this enabled
         device.native.send_config_set(["file prompt quiet"])
         command = 'copy {}{} {}{}'.format(source_fs, image,
                                           dst_fs, image)
@@ -143,6 +144,9 @@ def set_bootvar(device, image, file_system="bootflash:"):
         output += verify_bootvar_output + '\n'
         output += "copy running-config startup-config\n"
         output += device.show('copy running-config startup-config')
+        # in case we get a [startup-config]
+        output += device.show('\n')
+
         return True, output
     else:
         return False, output
@@ -152,18 +156,20 @@ def reload_device(device, command='reload'):
     try:
         print("Reloading device with command {}".format(command))
         cmds = [command, '\n']
-        output = device.show_list(cmds)
-        if isinstance(output, list):
-            output = "\n".join(output)
-        print "output from reload command is {}".format(output)
+
+        output = ""
+        raw_output = device.show_list(cmds)
+
+        if isinstance(raw_output, list):
+            raw_output = "\n".join(raw_output)
+        output += "\noutput from reload command is {}\n".format(raw_output)
+        output += "-- dont worry we hit enter for you!"
         # device may not kick us out immediately, but it should
         time.sleep(30)
         return output
     except socket.error:
         # okay to move on if we get booted from the device
         pass
-
-
 
 
 def verify_bootvar(device, image, **kwargs):
@@ -191,19 +197,25 @@ def verify_bootvar(device, image, **kwargs):
         return True, output
 
 
-def wait_for_reboot(ip, repeat=500):
+def wait_for_reboot(ip, repeat=500, delay=60):
     """
     Pings a device until it responds
 
     :param ip: str ip address
+    :param delay: int how long to wait before testing begins
     :param repeat: int maximum number of ping attempts before giving up
     :return: bool if device comes online
     """
     try:
+        # in case this gets called to soon e.g a device responds to ping
+        # for a bit we'll sleep for `delay`
+        time.sleep(delay)
+        # then start testing
         for i in range(repeat):
-            t = ping(ip)
-            if t:
+            ping_success = ping(ip)
+            if ping_success:
                 return True
+        # after repeat number of pings we say it failed
         return False
     except KeyboardInterrupt:
         sys.exit(1)
