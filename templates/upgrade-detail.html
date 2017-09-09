@@ -24,11 +24,22 @@ $(document).on('click', '.panel-heading span.clickable', function(e){
 
   <div class="row">
     <div class="col-md-12 text-center">
+        <button type="button" onclick="location.href='/upgrade'" class="btn btn-info btn-lg pull-left">
+                <span class="glyphicon glyphicon-th-list"></span>
+                  Back to Job View
 
-        <button onclick="showCredentialsModal();" class="btn btn-default btn-lg">Proceed With Upgrade</button>
+        </button>
+        {% if "STAGING SUCCESSFUL" in job.status  %}
+            {% set proceed_cls = 'btn-success' %}
+            {% set txt = "Looks good, lets do it!" %}
+        {% else %}
+            {% set proceed_cls = 'btn-danger' %}
+            {% set txt = "PROCEED WITH CAUTION" %}
+        {% endif %}
+        <button onclick="showCredentialsModal();" class="btn {{ proceed_cls }} btn-lg">{{ txt }}</button>
 
         <button onclick="confirmDeleteJob();" class="btn btn-danger btn-lg pull-right">
-        <span class="glyphicon glyphicon-trash"></span>Delete Job
+        <span class="glyphicon glyphicon-trash"></span>  Delete Job
         </button>
 
     </div>
