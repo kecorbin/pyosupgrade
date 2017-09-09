@@ -24,7 +24,7 @@
         {% for job in jobs %}
 
             <tr class='clickable-row' data-href='/upgrade/{{ job.id }}'>
-              <td><a href="{{ url_for('jobview-detail', id=job.id) }}">{{ job.id }}</a></td>
+              <td><a href="{{ url_for('jobview-detail', id=job.id, _external=True) }}">{{ job.id }}</a></td>
               <td>{{ job.mop }}</td>
               <td>{{ job.username }}</td>
               <td>{{ job.device }}</td>

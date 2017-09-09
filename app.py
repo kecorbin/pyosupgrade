@@ -13,16 +13,32 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 app = Flask(__name__)
 api = Api(app)
+
+POSTGRES = {
+    'user': 'upgrade',
+    'pw': 'password',
+    'db': 'upgrade',
+    'host': 'db',
+    'port': '5432',
+}
+
+
+app.secret_key = 'CHANGEME'
 # https://stackoverflow.com/questions/33738467/how-do-i-know-if-i-can-disable-sqlalchemy-track-modifications
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SERVER_NAME'] = 'https://10.'
 path = os.path.join(basedir + '/upgrade.db')
-print path
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + path
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://%(user)s:\
+%(pw)s@%(host)s:%(port)s/%(db)s' % POSTGRES
+
+
+#app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + path
 db.init_app(app)
 with app.app_context():
     db.create_all()
 
-LOGBIN_URL = "http://127.0.0.1:5000/api/logbin"
+LOGBIN_URL = "http://10.99.163.39:5000/api/logbin"
+CALLBACK_API = "https://10.99.163.39/api/upgrade"
 
 METHOD_OF_PROCEDURES = {
     "asr1000": {"description": "a fake mop",
@@ -40,7 +56,7 @@ def page_not_found(e):
 
 
 def home():
-    return redirect(url_for('jobview'))
+    return redirect(url_for('jobview', _external=True))
 
 
 def thread_launcher(job, request, operation):
@@ -56,7 +72,8 @@ def thread_launcher(job, request, operation):
     """
 
     # construct a URL for the API endpoint and glean user/pass from request
-    url = url_for('upgrade-api', id=job.id, _external=True)
+    # url = url_for('upgrade-api', id=job.id, _external=True)
+    url = CALLBACK_API + '/{}'.format(job.id)
     if request.json:
         user, passwd = request.json['username'], request.json['password']
         thread = IOSUpgrade(url, user, passwd)
@@ -103,7 +120,7 @@ def jobview(id=None):
             thread_launcher(job, request, "start_upgrade")
             # Notify the user
             flash("Upgrade Started", "success")
-            return redirect(url_for('jobview', id=id))
+            return redirect(url_for('jobview', id=id, _external=True))
 
         # handle the case where a new job is created
         else:
@@ -129,7 +146,7 @@ def jobview(id=None):
                     thread_launcher(job, request, "start_staging")
 
             flash("Submitted Job", "success")
-            return redirect(url_for('jobview'))
+            return redirect(url_for('jobview', _external=True))
 
 
 class CodeUpgradeJobView(Resource):
@@ -183,6 +200,9 @@ class Images(Resource):
     Returns a list of image filenames based on platform
     """
     def get(self, id=None):
+        with open('images.yaml', 'r') as images:
+            IMAGES = yaml.safe_load(images)
+
         return IMAGES
 
 
@@ -192,6 +212,8 @@ class Regions(Resource):
     unique site identifier encoded in hostname
     """
     def get(self, id=None):
+        with open('regions.yaml', 'r') as regions:
+            REGIONS = yaml.safe_load(regions)
         return REGIONS
 
 
@@ -203,10 +225,10 @@ api.add_resource(Images,
                  '/api/images',
                  endpoint='images')
 
-api.add_resource(Log,
-                 '/api/logbin',
-                 '/api/logbin/<int:logid>',
-                 endpoint='logbin')
+# api.add_resource(Log,
+#                  '/api/logbin',
+#                  '/api/logbin/<int:logid>',
+#                  endpoint='logbin')
 
 api.add_resource(CodeUpgradeJobView,
                  '/api/upgrade',
@@ -218,9 +240,9 @@ app.add_url_rule('/',
                  'home',
                  view_func=home,
                  methods=['GET'])
-app.add_url_rule('/logbin/viewer/<int:logid>',
-                 'viewer',
-                 view_func=viewer)
+# app.add_url_rule('/logbin/viewer/<int:logid>',
+#                  'viewer',
+#                  view_func=viewer)
 
 app.add_url_rule('/upgrade',
                  'jobview',
@@ -234,12 +256,7 @@ app.add_url_rule('/upgrade/<int:id>',
 
 
 if __name__ == '__main__':
-    with open('regions.yaml', 'r') as regions:
-        REGIONS = yaml.safe_load(regions)
 
-    with open('images.yaml', 'r') as images:
-        IMAGES = yaml.safe_load(images)
 
-    app.secret_key = 'CHANGEME'
     app.debug = True
     app.run()

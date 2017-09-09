@@ -1,0 +1,36 @@
+version: '2'
+services:
+  nginx:
+    image: nginx
+    network_mode: host
+
+    links:
+      - web:web
+    volumes:
+      - ./static:/var/www
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/ssl:/etc/nginx/ssl
+
+    depends_on:
+      - web
+  web:
+    build: .
+    command: "gunicorn app:app -b 0.0.0.0:8000"
+    links:
+      - db:db
+
+    depends_on:
+      - db
+    volumes:
+      - ./src:/src
+    expose:
+      - "8000"
+
+  db:
+    image: postgres:latest
+    environment:
+      POSTGRES_DB: upgrade
+      POSTGRES_USER: upgrade
+      POSTGRES_PASSWORD: password
+    expose:
+      - "5432"
