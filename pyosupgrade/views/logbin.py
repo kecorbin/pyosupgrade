@@ -49,4 +49,4 @@ class Log(Resource):
         if 'text' in request.json:
             logfile = LogFile(request.json['text'])
             print "Created logfile {}".format(logfile.id)
-            return {"url": url_for('viewer', logid=logfile.id, _external=True)}
+            return {"url": url_for('viewer', logid=logfile.id)}

@@ -2,29 +2,50 @@ version: '2'
 services:
   nginx:
     image: nginx
-    network_mode: host
-
     links:
       - web:web
     volumes:
       - ./static:/var/www
       - ./nginx/conf.d:/etc/nginx/conf.d
       - ./nginx/ssl:/etc/nginx/ssl
+    ports:
+      - 80:80
+      - 443:443
 
     depends_on:
       - web
+
   web:
     build: .
-    command: "gunicorn app:app -b 0.0.0.0:8000"
+#    command: "gunicorn app:app -b 0.0.0.0:8000"
+    command: "python app.py"
     links:
       - db:db
-
+      - redis:redis
     depends_on:
+      - redis
       - db
     volumes:
       - ./src:/src
     expose:
       - "8000"
+    environment:
+      - CALLBACK_API=http://web:5000/api/upgrade
+      - LOGBIN_API=http://web:5000/api/logbin
+      - REGIONS_API=http://web:5000/api/regions
+      - IMAGES_API=http://web:5000/api/images
+
+  redis:
+    image: redis:latest
+
+  worker:
+      build: .
+      command: "celery -E --loglevel=DEBUG -A tasks.celery worker"
+      links:
+        - db:db
+        - redis:redis
+      depends_on:
+        - redis
 
   db:
     image: postgres:latest

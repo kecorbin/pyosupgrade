@@ -1,5 +1,6 @@
 import yaml
 import os
+import tasks
 from flask import Flask, render_template, request, flash, redirect, url_for
 from flask_restful import Resource, Api
 from pyosupgrade.procedures.ios import IOSUpgrade
@@ -8,7 +9,6 @@ from pyosupgrade.procedures.asr1000 import ASR1000Upgrade
 from pyosupgrade.procedures.csr1000 import CSR1000Upgrade
 from pyosupgrade.views.logbin import Log, viewer
 from pyosupgrade.models import db, CodeUpgradeJob
-import tasks
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -22,8 +22,8 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 path = os.path.join(basedir + '/upgrade.db')
 
 app.config.update(
-    CELERY_BROKER_URL='redis://localhost:6379',
-    CELERY_RESULT_BACKEND='redis://localhost:6379'
+    CELERY_BROKER_URL='redis://redis:6379',
+    CELERY_RESULT_BACKEND='redis://redis:6379'
 )
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + path
@@ -32,8 +32,11 @@ db.init_app(app)
 with app.app_context():
     db.create_all()
 
-LOGBIN_URL = "http://172.0.0.1:5000/api/logbin"
-CALLBACK_API = "http://127.0.0.1:5000/api/upgrade"
+LOGBIN_URL = os.getenv('LOGBIN_API')
+CALLBACK_API =  os.getenv('CALLBACK_API')
+REGIONS_API = os.getenv('REGIONS_API')
+IMAGES_API = os.getenv('IMAGES_API')
+
 
 METHOD_OF_PROCEDURES = {
     "asr1000": {"description": "a fake mop",
@@ -90,8 +93,8 @@ def jobview(id=None):
             #
 
             # new way via celery worker
-
-            tasks.upgrade_launcher.delay(CALLBACK_API, mop, 'start_upgrade', username, password)
+            url = CALLBACK_API + '/{}'.format(job.id)
+            tasks.upgrade_launcher.delay(url, mop, 'start_upgrade', username, password)
 
             # Notify the user
             flash("Upgrade Started", "success")
@@ -251,4 +254,4 @@ if __name__ == '__main__':
 
 
     app.debug = True
-    app.run()
+    app.run(host='0.0.0.0')

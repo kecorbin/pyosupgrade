@@ -1,5 +1,6 @@
-from flask import url_for
+# from flask import url_for
 from flask_sqlalchemy import SQLAlchemy
+import os
 
 db = SQLAlchemy()
 
@@ -77,9 +78,9 @@ class CodeUpgradeJob(db.Model):
         self.username = username
         self.password = password
         self.mop = mop_name
-        self.regions_url = url_for('regions', _external=True)
-        self.images_url = url_for('images', _external=True)
-        self.logbin_url = url_for('logbin', _external=True)
+        self.regions_url = os.getenv('REGIONS_API')
+        self.images_url = os.getenv('IMAGES_API')
+        self.logbin_url = os.getenv('LOGBIN_API')
 
     @property
     def steps(self):

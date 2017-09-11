@@ -1,4 +1,4 @@
-from app import app, db
+from app import app
 from celery import Celery
 from flask import url_for
 from pyosupgrade.procedures.cat4500 import Catalyst4500Upgrade
