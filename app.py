@@ -33,7 +33,7 @@ with app.app_context():
     db.create_all()
 
 LOGBIN_URL = os.getenv('LOGBIN_API')
-CALLBACK_API =  os.getenv('CALLBACK_API')
+CALLBACK_API = os.getenv('CALLBACK_API')
 REGIONS_API = os.getenv('REGIONS_API')
 IMAGES_API = os.getenv('IMAGES_API')
 
@@ -152,7 +152,7 @@ class CodeUpgradeJobView(Resource):
 
             # new way via celery w/ REST callbacks
             url = CALLBACK_API + "/{}".format(job.id)
-            tasks.upgrade_launcher.delay(url, job.mop, 'start_upgrade', request['username'], request['password'])
+            tasks.upgrade_launcher.delay(url, job.mop, 'start_upgrade', request.json['username'], request.json['password'])
 
             return job.as_dict()
 
