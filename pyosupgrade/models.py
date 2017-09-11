@@ -19,7 +19,7 @@ class CodeUpgradeJob(db.Model):
 
     target_image = db.Column(db.String(128))
 
-    status = db.Column(db.String(18),
+    status = db.Column(db.String(128),
                        default="SUBMITTED")
     status_log_url = db.Column(db.String(128),
                                default=None)

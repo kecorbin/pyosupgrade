@@ -30,22 +30,39 @@ services:
     expose:
       - "8000"
     environment:
-      - CALLBACK_API=http://web:5000/api/upgrade
-      - LOGBIN_API=http://web:5000/api/logbin
-      - REGIONS_API=http://web:5000/api/regions
-      - IMAGES_API=http://web:5000/api/images
+      CALLBACK_API: http://web:5000/api/upgrade
+      LOGBIN_API: http://web:5000/api/logbin
+      REGIONS_API: http://web:5000/api/regions
+      IMAGES_API: http://web:5000/api/images
+      POSTGRES_HOST: db
+      POSTGRES_DB: upgrade
+      POSTGRES_USER: upgrade
+      POSTGRES_PASSWORD: password
+
 
   redis:
     image: redis:latest
 
   worker:
-      build: .
-      command: "celery -E --loglevel=DEBUG -A tasks.celery worker"
-      links:
-        - db:db
-        - redis:redis
-      depends_on:
-        - redis
+    build: .
+    command: "celery -E --loglevel=DEBUG -A tasks.celery worker"
+    links:
+      - db:db
+      - redis:redis
+    depends_on:
+      - redis
+      - db
+    environment:
+      CALLBACK_API: http://web:5000/api/upgrade
+      LOGBIN_API: http://web:5000/api/logbin
+      REGIONS_API: http://web:5000/api/regions
+      IMAGES_API: http://web:5000/api/images
+      POSTGRES_HOST: db
+      POSTGRES_DB: upgrade
+      POSTGRES_USER: upgrade
+      POSTGRES_PASSWORD: password
+
+
 
   db:
     image: postgres:latest

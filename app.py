@@ -19,14 +19,27 @@ api = Api(app)
 app.secret_key = 'CHANGEME'
 # https://stackoverflow.com/questions/33738467/how-do-i-know-if-i-can-disable-sqlalchemy-track-modifications
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-path = os.path.join(basedir + '/upgrade.db')
+
+# path = os.path.join(basedir + '/upgrade.db')
 
 app.config.update(
     CELERY_BROKER_URL='redis://redis:6379',
     CELERY_RESULT_BACKEND='redis://redis:6379'
 )
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + path
+
+POSTGRES = {
+    'user': os.getenv('POSTGRES_USER'),
+    'pw': os.getenv('POSTGRES_PASSWORD'),
+    'db': os.getenv('POSTGRES_DB'),
+    'host': os.getenv('POSTGRES_HOST'),
+    'port': '5432',
+}
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://%(user)s:\
+%(pw)s@%(host)s:%(port)s/%(db)s' % POSTGRES
+
+
+# app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + path
 
 db.init_app(app)
 with app.app_context():
