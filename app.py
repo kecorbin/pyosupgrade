@@ -8,37 +8,32 @@ from pyosupgrade.procedures.asr1000 import ASR1000Upgrade
 from pyosupgrade.procedures.csr1000 import CSR1000Upgrade
 from pyosupgrade.views.logbin import Log, viewer
 from pyosupgrade.models import db, CodeUpgradeJob
+import tasks
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
 app = Flask(__name__)
 api = Api(app)
 
-POSTGRES = {
-    'user': 'upgrade',
-    'pw': 'password',
-    'db': 'upgrade',
-    'host': 'db',
-    'port': '5432',
-}
-
 
 app.secret_key = 'CHANGEME'
 # https://stackoverflow.com/questions/33738467/how-do-i-know-if-i-can-disable-sqlalchemy-track-modifications
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SERVER_NAME'] = 'https://10.'
 path = os.path.join(basedir + '/upgrade.db')
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://%(user)s:\
-%(pw)s@%(host)s:%(port)s/%(db)s' % POSTGRES
 
+app.config.update(
+    CELERY_BROKER_URL='redis://localhost:6379',
+    CELERY_RESULT_BACKEND='redis://localhost:6379'
+)
 
-#app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + path
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + path
+
 db.init_app(app)
 with app.app_context():
     db.create_all()
 
-LOGBIN_URL = "http://10.99.163.39:5000/api/logbin"
-CALLBACK_API = "https://10.99.163.39/api/upgrade"
+LOGBIN_URL = "http://172.0.0.1:5000/api/logbin"
+CALLBACK_API = "http://127.0.0.1:5000/api/upgrade"
 
 METHOD_OF_PROCEDURES = {
     "asr1000": {"description": "a fake mop",
@@ -59,39 +54,6 @@ def home():
     return redirect(url_for('jobview', _external=True))
 
 
-def thread_launcher(job, request, operation):
-    """
-    this is essentially a class factory which initiates an
-    IOS upgrade job from a request via webform or REST API
-
-    :param job: CodeUpgradeJob an instance of CodeUpgradeJob
-    :param request: flask.request a flask requst
-    :param operation: string containing the desired process e.g start_staging
-
-    :return:
-    """
-
-    # construct a URL for the API endpoint and glean user/pass from request
-    # url = url_for('upgrade-api', id=job.id, _external=True)
-    url = CALLBACK_API + '/{}'.format(job.id)
-    if request.json:
-        user, passwd = request.json['username'], request.json['password']
-        thread = IOSUpgrade(url, user, passwd)
-    elif request.form:
-        user, passwd = request.form['username'], request.form['password']
-        mop = request.form['mop']
-        print request.form
-        thread = METHOD_OF_PROCEDURES[mop]['procedure'](url, user, passwd)
-
-    # start an upgrade thread which uses the job api for updating status
-    # depending on operation we will trigger the appropriate process
-    # thread.start_upgrade()
-    #
-    # operation="start_upgrade" invokes IOSUpgrade.start_upgrade()
-    getattr(thread, operation)()
-    return thread
-
-
 def jobview(id=None):
 
     if request.method == 'GET':
@@ -110,14 +72,27 @@ def jobview(id=None):
                                    procedures=METHOD_OF_PROCEDURES)
 
     elif request.method == 'POST':
+        # gather form data
+        username, password = request.form['username'], request.form['password']
+        mop = request.form['mop']
+
         # handle the case where this is an existing job
         # this most likely means the device is ready to be upgraded)
+
         if id:
             print ("starting upgrade")
             job = CodeUpgradeJob.query.filter_by(id=id).first()
             # here we dispatch the request to a worker thread
             # the thread which will update its record via the API
-            thread_launcher(job, request, "start_upgrade")
+
+            # old way via threads
+            # tasks.upgrade_launcher(job, request, "start_upgrade")
+            #
+
+            # new way via celery worker
+
+            tasks.upgrade_launcher.delay(CALLBACK_API, mop, 'start_upgrade', username, password)
+
             # Notify the user
             flash("Upgrade Started", "success")
             return redirect(url_for('jobview', id=id, _external=True))
@@ -143,7 +118,13 @@ def jobview(id=None):
                                          payload['mop'])
                     db.session.add(job)
                     db.session.commit()
-                    thread_launcher(job, request, "start_staging")
+
+                    # old way via threads
+                    # thread_launcher(job, request, "start_staging")
+
+                    # new way via celery w/ REST callbacks
+                    url = CALLBACK_API + "/{}".format(job.id)
+                    tasks.upgrade_launcher.delay(url, mop, 'start_staging', username, password)
 
             flash("Submitted Job", "success")
             return redirect(url_for('jobview', _external=True))
@@ -165,7 +146,11 @@ class CodeUpgradeJobView(Resource):
         if operation == "start" and id:
 
             job = CodeUpgradeJob.query.filter_by(id=id).first()
-            thread_launcher(job, request, "start_upgrade")
+
+            # new way via celery w/ REST callbacks
+            url = CALLBACK_API + "/{}".format(job.id)
+            tasks.upgrade_launcher.delay(url, job.mop, 'start_upgrade', request['username'], request['password'])
+
             return job.as_dict()
 
         # endpoint to update and existing job
@@ -177,12 +162,18 @@ class CodeUpgradeJobView(Resource):
 
             job.save()
 
+        # new job received via api
         else:
             if request.json:
                 job = CodeUpgradeJob.from_dict(request.json)
                 db.session.add(job)
                 db.session.commit()
-                thread_launcher(job, request, "start_staging")
+                # old way via threads
+                # thread_launcher(job, request, "start_staging")
+
+                # new way via celery w/ REST callbacks
+                url = CALLBACK_API + "/{}".format(job.id)
+                tasks.upgrade_launcher.delay(url, job.mop, 'start_staging', request.json['username'], request.json['password'])
 
                 return job.as_dict()
 
@@ -225,10 +216,10 @@ api.add_resource(Images,
                  '/api/images',
                  endpoint='images')
 
-# api.add_resource(Log,
-#                  '/api/logbin',
-#                  '/api/logbin/<int:logid>',
-#                  endpoint='logbin')
+api.add_resource(Log,
+                 '/api/logbin',
+                 '/api/logbin/<int:logid>',
+                 endpoint='logbin')
 
 api.add_resource(CodeUpgradeJobView,
                  '/api/upgrade',
@@ -240,9 +231,10 @@ app.add_url_rule('/',
                  'home',
                  view_func=home,
                  methods=['GET'])
-# app.add_url_rule('/logbin/viewer/<int:logid>',
-#                  'viewer',
-#                  view_func=viewer)
+
+app.add_url_rule('/logbin/viewer/<int:logid>',
+                 'viewer',
+                 view_func=viewer)
 
 app.add_url_rule('/upgrade',
                  'jobview',

@@ -170,7 +170,8 @@ class CodeUpgradeJob(db.Model):
     def from_dict(cls, job_dict):
         obj = cls(job_dict['device'],
                   job_dict['username'],
-                  job_dict['password'])
+                  job_dict['password'],
+                  job_dict['mop'])
 
         for k, v in job_dict.items():
             setattr(obj, k, v)
