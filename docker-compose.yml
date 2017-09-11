@@ -16,7 +16,9 @@ services:
       - web
 
   web:
+    restart: always
     build: .
+
 #    command: "gunicorn app:app -b 0.0.0.0:8000"
     command: "python app.py"
     links:
@@ -46,6 +48,8 @@ services:
   worker:
     build: .
     command: "celery -E --loglevel=DEBUG -A tasks.celery worker"
+    restart: always
+
     links:
       - db:db
       - redis:redis
