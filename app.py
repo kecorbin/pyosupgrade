@@ -80,9 +80,7 @@ def jobview(id=None):
             # retrieve mongo document by id
             doc = mongo.db.upgrades.find_one({"id": id})
             # deserialize the job from mongo
-            print "RESPONSE FROM MONGO: {}".format(doc)
             job = METHOD_OF_PROCEDURES[doc['mop']]['procedure'].from_dict(doc)
-            print job.steps
             return render_template('upgrade-detail.html',
                                    title="Job Detail",
                                    job=job,
@@ -91,7 +89,6 @@ def jobview(id=None):
         else:
             cursor = mongo.db.upgrades.find()
             jobs = [j for j in cursor]
-            print jobs
             return render_template('upgrade.html',
                                    title='Code Staging',
                                    logo='/static/img/4500.jpg',

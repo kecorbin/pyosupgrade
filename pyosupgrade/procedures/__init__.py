@@ -1,7 +1,5 @@
 import requests
 import json
-import os
-from pyosupgrade.decorators import run_async
 
 
 class BaseUpgrade(object):
@@ -29,31 +27,26 @@ class BaseUpgrade(object):
                 # we'll also default out any empty parameters
                 # ideally the status should always be a bootstrap class
                 resp[key] = self._attributes.get(key)
-        print resp
         return resp
 
     @classmethod
     def from_dict(cls, job_dict):
-        print "Creating job instance with {}:".format(job_dict)
         # we may not always have these fields
         job_url = job_dict.get('job_url', None)
         username = job_dict.get('username', None)
         password = job_dict.get('password', None)
+        # creates new object
         obj = cls(job_url, username, password)
-        print "created instance {}".format(obj.as_dict())
         for k, v in job_dict.items():
-            print "setting {}".format(k)
             obj._attributes[k] = v
         return obj
 
-    @run_async
     def start_staging(self):
-        # try:
-        self.staging_process()
-        # except Exception as e:
-        #     self.status = "FAILED - {}".format(e[:64])
+        try:
+            self.staging_process()
+        except Exception as e:
+            self.status = "FAILED - {}".format(e[:64])
 
-    @run_async
     def start_upgrade(self):
         try:
             self.upgrade_process()

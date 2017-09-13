@@ -11,6 +11,21 @@ class ASR1000Upgrade(IOSUpgrade):
 
     reload_command = "reload"
 
+    @property
+    def steps(self):
+        steps = [('Code Transfer', self.code_upload_status, self.code_upload_log_url),
+                 ('Verify Supervisor Redundancy', self.sup_redundancy_status, self.sup_redundancy_log_url),
+                 ('Synchronize Code to Standby Supervisor', self.copy_code_to_slave_status, self.copy_code_to_slave_log_url),
+                 ('Backup Running Config', self.backup_running_config_status, self.backup_running_config_log_url),
+                 ('Set Boot Variable', self.set_bootvar_status, self.set_bootvar_status_log_url),
+                 ('Verify Boot Variable', self.verify_bootvar_status, self.verify_bootvar_status_log_url),
+                 ('Reload Device', self.reload_status, self.reload_status_log_url),
+                 ('Verify Upgrade', self.verify_upgrade, self.verify_upgrade_log_url, self.verify_upgrade_log_url),
+                 (self.custom_verification_1_name, self.custom_verification_1_status, self.custom_verification_1_status_log_url),
+                 (self.custom_verification_2_name, self.custom_verification_2_status, self.custom_verification_2_status_log_url)
+                 ]
+        return steps
+
     def identify_platform(self):
         """
         get's supervisor information from an ASR1000 this is used to
