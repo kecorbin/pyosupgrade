@@ -5,6 +5,10 @@ Python based utility for automating the upgrade of IOS based switches
 Validated on the Catalyst 4500 series switches.  May require minor changes to work
 with other platforms
 
+### Sample Procedures included
+* Catalyst 4500 w/ advanced FPGA + QoS queue verification
+* CSR1000v
+* ASR1000 w/ ROMMON upgrade
 
 # Architecture
 
@@ -26,19 +30,56 @@ Redis is an open source (BSD licensed), in-memory data structure store, used as 
 Redis is the broker used by celery to distribute celery tasks.
 
 
-### [PostgreSQL](https://www.postgresql.org)
+### [MongoDB](https://www.mongodb.com)
 
-Traditional RDMS used for persisting information about our upgrades.  This is really unnecessary at this point
-as we don't have a lot of(any) relationships in the object model, but that's what we used initially. Will likely
-be replaced with something like Mongo in the future.
+MongoDB is an open source database that uses a document-oriented data model. This is where we persist information
+about upgrade jobs
 
 
-# running
+# Getting started
 
-```
-virtualenv venv
-source venv/bin/activate
-pip install -r requirements.txt
-./start.sh
+Getting started is super easy, just modify the [images.yaml](./images.yaml) to suit your needs
 
 ```
+WS-X45-SUP7-E:
+  filename: cat4500e-universalk9.SPA.03.08.04.E.152-4.E4.bin
+```
+
+In this example a platform matching WS-X45-SUP7-E will use `cat4500e-universalk9.SPA.03.08.04.E.152-4.E4.bin`
+from the regional TFTP server.
+
+Regions are how we identify which TFTP server to use for the file transfer for a given switch.  Usually
+devices contain some geographical region information in their hostname.
+
+Modify [regions.yaml](./regions.yaml) to suit your situation.
+
+ ```
+FR:
+  regional_fs: 10.250.6.20
+BF:
+  regional_fs: 10.122.1.10
+AS:
+  regional_fs: 10.122.1.10
+KC:
+  regional_fs: 192.168.51.1
+ ```
+
+ In this example any switch starting with `AS` will use `10.122.1.10` as the tftp server, likewise, switches
+ with starting with `kc` will use `192.168.51.1`
+
+# Certificates
+
+Self-signed certificates are provided for convienence and to provide a base level of encryption, however,
+for anything beyond kicking the tires it would probably be a good idea to generate your own, and replace
+the default ones in [./nginx/ssl](./nginx/ssl)
+
+
+# Running
+
+The easiest way to use this project is with docker-compose
+```
+docker-compose build && docker-compose up
+```
+
+you should be able to browse to [https://localhost](https://localhost) to get started!
+
