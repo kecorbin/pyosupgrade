@@ -126,7 +126,7 @@ def set_bootvar(device, image, file_system="bootflash:"):
     output += bootvar_output
     existing_bootstmts = bootvar_output.split('\n')
     print "existing bootstatements = {}".format(existing_bootstmts)
-    conf_set = list()
+    conf_set = ['file prompt quiet']
     if len(existing_bootstmts) >= 1:
 
         for bootstmt in existing_bootstmts:
@@ -143,7 +143,7 @@ def set_bootvar(device, image, file_system="bootflash:"):
         output += "show running | inc boot system\n"
         output += verify_bootvar_output + '\n'
         output += "copy running-config startup-config\n"
-        output += device.native.send_command_expect('copy running-config startup-config', delay_factor=5)
+        output += device.native.send_command_expect('copy running-config startup-config\n\n', delay_factor=5)
         # in case we get a [startup-config]
         output += device.show('\n')
 
