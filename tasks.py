@@ -4,7 +4,7 @@ from flask import url_for
 from pyosupgrade.procedures.cat4500 import Catalyst4500Upgrade
 from pyosupgrade.procedures.asr1000 import ASR1000Upgrade
 from pyosupgrade.procedures.csr1000 import CSR1000Upgrade
-from pyosupgrade.models import CodeUpgradeJob
+#from pyosupgrade.models import CodeUpgradeJob
 
 def make_celery(app):
     celery = Celery(app.import_name, backend=app.config['CELERY_RESULT_BACKEND'],

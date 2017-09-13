@@ -3,12 +3,16 @@ import os
 import tasks
 from flask import Flask, render_template, request, flash, redirect, url_for
 from flask_restful import Resource, Api
+from flask_pymongo import PyMongo
+from bson.objectid import ObjectId
+from bson.json_util import dumps
+
 from pyosupgrade.procedures.ios import IOSUpgrade
 from pyosupgrade.procedures.cat4500 import Catalyst4500Upgrade
 from pyosupgrade.procedures.asr1000 import ASR1000Upgrade
 from pyosupgrade.procedures.csr1000 import CSR1000Upgrade
 from pyosupgrade.views.logbin import Log, viewer
-from pyosupgrade.models import db, CodeUpgradeJob
+# from pyosupgrade.models import db, CodeUpgradeJob
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -20,30 +24,28 @@ app.secret_key = 'CHANGEME'
 # https://stackoverflow.com/questions/33738467/how-do-i-know-if-i-can-disable-sqlalchemy-track-modifications
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-# path = os.path.join(basedir + '/upgrade.db')
 
 app.config.update(
     CELERY_BROKER_URL='redis://redis:6379',
-    CELERY_RESULT_BACKEND='redis://redis:6379'
+    CELERY_RESULT_BACKEND='redis://redis:6379',
+    REDIS_HOST='localhost',
+    REDIS_PORT=6379,
+    REDIS_DB='upgrades'
+
 )
 
 
-POSTGRES = {
-    'user': os.getenv('POSTGRES_USER'),
-    'pw': os.getenv('POSTGRES_PASSWORD'),
-    'db': os.getenv('POSTGRES_DB'),
-    'host': os.getenv('POSTGRES_HOST'),
-    'port': '5432',
-}
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://%(user)s:\
-%(pw)s@%(host)s:%(port)s/%(db)s' % POSTGRES
 
-
+# path = os.path.join(basedir + '/upgrade.db')
 # app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + path
+app.config["MONGO_DBNAME"] = "upgrades"
+app.config["MONGO_HOST"] = "mongo"
+mongo = PyMongo(app, config_prefix='MONGO')
 
-db.init_app(app)
-with app.app_context():
-    db.create_all()
+
+
+# with app.app_context():
+#     db.create_all()
 
 LOGBIN_URL = os.getenv('LOGBIN_API')
 CALLBACK_API = os.getenv('CALLBACK_API')
@@ -73,14 +75,23 @@ def home():
 def jobview(id=None):
 
     if request.method == 'GET':
+        # job detail view
         if id:
-            job = CodeUpgradeJob.query.filter_by(id=id).first()
+            # retrieve mongo document by id
+            doc = mongo.db.upgrades.find_one({"id": id})
+            # deserialize the job from mongo
+            print "RESPONSE FROM MONGO: {}".format(doc)
+            job = METHOD_OF_PROCEDURES[doc['mop']]['procedure'].from_dict(doc)
+            print job.steps
             return render_template('upgrade-detail.html',
                                    title="Job Detail",
                                    job=job,
                                    procedures=METHOD_OF_PROCEDURES)
+        # job list view
         else:
-            jobs = CodeUpgradeJob.query.all()
+            cursor = mongo.db.upgrades.find()
+            jobs = [j for j in cursor]
+            print jobs
             return render_template('upgrade.html',
                                    title='Code Staging',
                                    logo='/static/img/4500.jpg',
@@ -97,16 +108,12 @@ def jobview(id=None):
 
         if id:
             print ("starting upgrade")
-            job = CodeUpgradeJob.query.filter_by(id=id).first()
-            # here we dispatch the request to a worker thread
-            # the thread which will update its record via the API
-
-            # old way via threads
-            # tasks.upgrade_launcher(job, request, "start_upgrade")
-            #
-
-            # new way via celery worker
-            url = CALLBACK_API + '/{}'.format(job.id)
+            # retrieve mongo document by id
+            doc = mongo.db.upgrades.find_one({"id": id})
+            # deserialize the job from mongo
+            print "RESPONSE FROM MONGO: {}".format(doc)
+            job = METHOD_OF_PROCEDURES[doc['mop']]['procedure'].from_dict(doc)
+            url = CALLBACK_API + '/{}'.format(id)
             tasks.upgrade_launcher.delay(url, mop, 'start_upgrade', username, password)
 
             # Notify the user
@@ -128,18 +135,25 @@ def jobview(id=None):
                 # this could use better verification e.g ping/etc
                 if len(d) > 5:
                     print "Creating code upload job for {}".format(d)
-                    job = CodeUpgradeJob(d,
-                                         payload['username'],
-                                         payload['password'],
-                                         payload['mop'])
-                    db.session.add(job)
-                    db.session.commit()
+                    object_id = ObjectId()
+                    url = CALLBACK_API + "/{}".format(object_id)
+                    data = {"_id": object_id,
+                            "job_url": url,
+                            "id": str(object_id),
+                            "status": "SUBMITTED",
+                            "username": payload['username'],
+                            "device": d,
+                            "mop": payload['mop'],
+                            "regions_url": REGIONS_API,
+                            "images_url": IMAGES_API,
+                            "logbin_url": LOGBIN_URL}
 
-                    # old way via threads
-                    # thread_launcher(job, request, "start_staging")
+
+                    # insert
+                    mongo.db.upgrades.insert(data)
 
                     # new way via celery w/ REST callbacks
-                    url = CALLBACK_API + "/{}".format(job.id)
+
                     tasks.upgrade_launcher.delay(url, mop, 'start_staging', username, password)
 
             flash("Submitted Job", "success")
@@ -150,54 +164,69 @@ class CodeUpgradeJobView(Resource):
 
     def get(self, id=None):
         if id:
-            job = CodeUpgradeJob.query.filter_by(id=id).first()
-            return job.as_dict()
+            print "getting job with id {} ".format(id)
+
+            job = mongo.db.upgrades.find_one({"_id": ObjectId(id)}, {"_id": 0})
+            print "got job {}".format(job)
+            print job
+            return job
         else:
 
-            staging_jobs = CodeUpgradeJob.query.all()
-            return [job.as_dict() for job in staging_jobs]
+            cursor = mongo.db.upgrades.find({}, {"_id": 0})
+            staging_jobs = [j for j in cursor]
+            print "staging jobs {}".format(staging_jobs)
+            return staging_jobs
 
     def post(self, id=None, operation=None):
         # endpoint to start job
         if operation == "start" and id:
-
-            job = CodeUpgradeJob.query.filter_by(id=id).first()
-
-            # new way via celery w/ REST callbacks
-            url = CALLBACK_API + "/{}".format(job.id)
-            tasks.upgrade_launcher.delay(url, job.mop, 'start_upgrade', request.json['username'], request.json['password'])
-
-            return job.as_dict()
+            job = mongo.db.upgrades.find_one({"id": id}, {"_id": 0, "update_time": 0})
+            url = CALLBACK_API + "/{}".format(job['id'])
+            tasks.upgrade_launcher.delay(url, job['mop'], 'start_upgrade', request.json['username'], request.json['password'])
+            return job
 
         # endpoint to update and existing job
         if id:
-            job = CodeUpgradeJob.query.filter_by(id=id).first()
-            print request.json
+            job = mongo.db.upgrades.find_one({"id": id}, {"_id": 0, "update_time": 0})
             for k, v in request.json.items():
-                setattr(job, k, v)
-
-            job.save()
+                job[k] = v
+            mongo.db.upgrades.update({"_id": ObjectId(id)}, job)
+            return job
 
         # new job received via api
         else:
             if request.json:
-                job = CodeUpgradeJob.from_dict(request.json)
-                db.session.add(job)
-                db.session.commit()
+
+                object_id = ObjectId()
+                data = {"id": str(object_id),
+                        "status": "SUBMITTED",
+                        "username": request.json['username'],
+                        "device": request.json['device'],
+                        "mop": request.json['mop']}
+
+                mongo.db.upgrades.insert(data)
+                job = mongo.db.upgrades.find_one({"id": object_id})
+                # job = CodeUpgradeJob.from_dict(request.json)
+                # db.session.add(job)
+                # db.session.commit()
                 # old way via threads
                 # thread_launcher(job, request, "start_staging")
 
                 # new way via celery w/ REST callbacks
-                url = CALLBACK_API + "/{}".format(job.id)
-                tasks.upgrade_launcher.delay(url, job.mop, 'start_staging', request.json['username'], request.json['password'])
+                url = CALLBACK_API + "/{}".format(str(object_id))
+                tasks.upgrade_launcher.delay(url, request.json['mop'],
+                                             'start_staging',
+                                             request.json['username'],
+                                             request.json['password'])
+                return dumps(job)
 
-                return job.as_dict()
 
     def delete(self, id=None):
         try:
-            job = CodeUpgradeJob.query.filter_by(id=id).first()
+
+            job = mongo.db.upgrades.find_one({"id": id})
             print "deleting job {}".format(job)
-            job.delete()
+            mongo.db.upgrades.delete_one({'id': id})
             return {'status': 'deleted'}, 200
         except AttributeError:
             return {"status": "not found"}, 404
@@ -239,8 +268,8 @@ api.add_resource(Log,
 
 api.add_resource(CodeUpgradeJobView,
                  '/api/upgrade',
-                 '/api/upgrade/<int:id>',
-                 '/api/upgrade/<int:id>/<string:operation>',
+                 '/api/upgrade/<string:id>',
+                 '/api/upgrade/<string:id>/<string:operation>',
                  endpoint='upgrade-api')
 
 app.add_url_rule('/',
@@ -257,7 +286,7 @@ app.add_url_rule('/upgrade',
                  view_func=jobview,
                  methods=['GET', 'POST'])
 
-app.add_url_rule('/upgrade/<int:id>',
+app.add_url_rule('/upgrade/<string:id>',
                  'jobview-detail',
                  view_func=jobview,
                  methods=['GET', 'POST'])

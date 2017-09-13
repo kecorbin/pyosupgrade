@@ -49,7 +49,7 @@ terminal==0.4.0
 urllib3==1.22
 Werkzeug==0.12.2
 Flask-SQLAlchemy==2.2
+Flask-PyMongo==0.5.1
 gunicorn==19.7.1
-psycopg2
 celery
 redis
