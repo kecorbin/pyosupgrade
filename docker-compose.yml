@@ -36,10 +36,6 @@ services:
       LOGBIN_API: http://web:5000/api/logbin
       REGIONS_API: http://web:5000/api/regions
       IMAGES_API: http://web:5000/api/images
-      POSTGRES_HOST: db
-      POSTGRES_DB: upgrade
-      POSTGRES_USER: upgrade
-      POSTGRES_PASSWORD: password
 
 
   redis:
@@ -61,10 +57,6 @@ services:
       LOGBIN_API: http://web:5000/api/logbin
       REGIONS_API: http://web:5000/api/regions
       IMAGES_API: http://web:5000/api/images
-      POSTGRES_HOST: db
-      POSTGRES_DB: upgrade
-      POSTGRES_USER: upgrade
-      POSTGRES_PASSWORD: password
 
   mongo:
     image: mongo:latest
