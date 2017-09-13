@@ -62,7 +62,7 @@ class Catalyst4500Upgrade(IOSUpgrade):
         # find out how many modules have the correct RevisionReg
         cmd = 'show platform chassis | inc {}'
         platform_output = device.show(cmd.format(revision_reg))
-        upgrades = platform_output.split('\n')
+        upgrades = [l for l in platform_output.split("\n") if l != '']
         num_mods_upgraded = len(upgrades)
 
         # structure output

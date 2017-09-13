@@ -6,13 +6,10 @@ from flask_restful import Resource, Api
 from flask_pymongo import PyMongo
 from bson.objectid import ObjectId
 from bson.json_util import dumps
-
-from pyosupgrade.procedures.ios import IOSUpgrade
 from pyosupgrade.procedures.cat4500 import Catalyst4500Upgrade
 from pyosupgrade.procedures.asr1000 import ASR1000Upgrade
 from pyosupgrade.procedures.csr1000 import CSR1000Upgrade
 from pyosupgrade.views.logbin import Log, viewer
-# from pyosupgrade.models import db, CodeUpgradeJob
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -35,17 +32,9 @@ app.config.update(
 )
 
 
-
-# path = os.path.join(basedir + '/upgrade.db')
-# app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + path
 app.config["MONGO_DBNAME"] = "upgrades"
 app.config["MONGO_HOST"] = "mongo"
 mongo = PyMongo(app, config_prefix='MONGO')
-
-
-
-# with app.app_context():
-#     db.create_all()
 
 LOGBIN_URL = os.getenv('LOGBIN_API')
 CALLBACK_API = os.getenv('CALLBACK_API')
@@ -145,12 +134,9 @@ def jobview(id=None):
                             "images_url": IMAGES_API,
                             "logbin_url": LOGBIN_URL}
 
-
                     # insert
                     mongo.db.upgrades.insert(data)
-
-                    # new way via celery w/ REST callbacks
-
+                    # start staging
                     tasks.upgrade_launcher.delay(url, mop, 'start_staging', username, password)
 
             flash("Submitted Job", "success")
@@ -203,13 +189,6 @@ class CodeUpgradeJobView(Resource):
 
                 mongo.db.upgrades.insert(data)
                 job = mongo.db.upgrades.find_one({"id": object_id})
-                # job = CodeUpgradeJob.from_dict(request.json)
-                # db.session.add(job)
-                # db.session.commit()
-                # old way via threads
-                # thread_launcher(job, request, "start_staging")
-
-                # new way via celery w/ REST callbacks
                 url = CALLBACK_API + "/{}".format(str(object_id))
                 tasks.upgrade_launcher.delay(url, request.json['mop'],
                                              'start_staging',
@@ -217,16 +196,15 @@ class CodeUpgradeJobView(Resource):
                                              request.json['password'])
                 return dumps(job)
 
-
     def delete(self, id=None):
         try:
-
             job = mongo.db.upgrades.find_one({"id": id})
             print "deleting job {}".format(job)
             mongo.db.upgrades.delete_one({'id': id})
             return {'status': 'deleted'}, 200
         except AttributeError:
             return {"status": "not found"}, 404
+
 
 class Images(Resource):
     """
@@ -290,7 +268,6 @@ app.add_url_rule('/upgrade/<string:id>',
 
 
 if __name__ == '__main__':
-
 
     app.debug = True
     app.run(host='0.0.0.0')
