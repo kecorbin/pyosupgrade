@@ -46,7 +46,7 @@ class Catalyst4500Upgrade(IOSUpgrade):
         # find out how many modules have the correct RevisionReg
         cmd = 'show platform chassis | inc {}'
         platform_output = device.show(cmd.format(revision_reg))
-        upgrades = platform_output.split('\n')
+        upgrades = [l for l in platform_output.split("\n") if l != '']
         num_mods_upgraded = len(upgrades)
 
         # structure output
@@ -135,7 +135,7 @@ class Catalyst4500Upgrade(IOSUpgrade):
             return False
 
     def custom_verification_2(self):
-        self.custom_verification_1_name = "Verify Supervisor TX Queues"
+        self.custom_verification_2_name = "Verify Supervisor TX Queues"
         self.status = "verify tx queues"
         verified, output = self._ensure_queues_are_enabled()
         self.custom_verification_2_status_log_url = self.logbin(output)
