@@ -143,7 +143,7 @@ def set_bootvar(device, image, file_system="bootflash:"):
         output += "show running | inc boot system\n"
         output += verify_bootvar_output + '\n'
         output += "copy running-config startup-config\n"
-        output += device.show('copy running-config startup-config')
+        output += device.native.send_command_expect('copy running-config startup-config', delay_factor=5)
         # in case we get a [startup-config]
         output += device.show('\n')
 
