@@ -4,6 +4,7 @@ services:
     image: nginx
     links:
       - web:web
+      - flower:flower
     volumes:
       - ./static:/var/www
       - ./nginx/conf.d:/etc/nginx/conf.d
@@ -11,6 +12,7 @@ services:
     ports:
       - 80:80
       - 443:443
+      - 8443:8443
 
     depends_on:
       - web
@@ -37,9 +39,25 @@ services:
       REGIONS_API: http://web:5000/api/regions
       IMAGES_API: http://web:5000/api/images
 
-
-  redis:
-    image: redis:latest
+  flower:
+    restart: always
+    build: .
+    command: "celery flower -A tasks.celery --basic_auth=admin:password --address=0.0.0.0 --port=5555"
+    links:
+      - redis:redis
+      - mongo:mongo
+    depends_on:
+      - redis
+      - mongo
+    volumes:
+      - ./src:/src
+    expose:
+      - "8000"
+    environment:
+      CALLBACK_API: http://web:5000/api/upgrade
+      LOGBIN_API: http://web:5000/api/logbin
+      REGIONS_API: http://web:5000/api/regions
+      IMAGES_API: http://web:5000/api/images
 
   worker:
     build: .
@@ -57,6 +75,11 @@ services:
       LOGBIN_API: http://web:5000/api/logbin
       REGIONS_API: http://web:5000/api/regions
       IMAGES_API: http://web:5000/api/images
+
+
+  redis:
+    image: redis:latest
+
 
   mongo:
     image: mongo:latest
