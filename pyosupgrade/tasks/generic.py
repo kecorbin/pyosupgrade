@@ -126,7 +126,7 @@ def set_bootvar(device, image, file_system="bootflash:"):
     output += bootvar_output
     existing_bootstmts = bootvar_output.split('\n')
     print "existing bootstatements = {}".format(existing_bootstmts)
-    conf_set = list()
+    conf_set = ['file prompt quiet']
     if len(existing_bootstmts) >= 1:
 
         for bootstmt in existing_bootstmts:
@@ -143,7 +143,7 @@ def set_bootvar(device, image, file_system="bootflash:"):
         output += "show running | inc boot system\n"
         output += verify_bootvar_output + '\n'
         output += "copy running-config startup-config\n"
-        output += device.show('copy running-config startup-config')
+        output += device.native.send_command_expect('copy running-config startup-config\n\n', delay_factor=5)
         # in case we get a [startup-config]
         output += device.show('\n')
 
@@ -209,11 +209,15 @@ def wait_for_reboot(ip, repeat=500, delay=60):
     try:
         # in case this gets called to soon e.g a device responds to ping
         # for a bit we'll sleep for `delay`
+        print "Waiting {} seconds for device to go down completely".format(delay)
         time.sleep(delay)
         # then start testing
         for i in range(repeat):
+            if repeat % 60 == 0:
+                print("Waiting {} more minutes for host to come online".format(delay / 60))
             ping_success = ping(ip)
             if ping_success:
+                print ("Host is responding to pings again!")
                 return True
         # after repeat number of pings we say it failed
         return False

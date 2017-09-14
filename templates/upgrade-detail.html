@@ -64,11 +64,11 @@ $(document).on('click', '.panel-heading span.clickable', function(e){
     </thead>
     <tbody>
       <tr>
-        <td>{{ job.id }}</td>
-        <td>{{ job.mop }}</td>
-        <td>{{job.device}}</td>
-        <td>{{job.username}}</td>
-        <td>{{job.status}}</td>
+        <td>{{ job['id'] }}</td>
+        <td>{{ job['mop'] }}</td>
+        <td>{{ job['device'] }}</td>
+        <td>{{ job['username'] }}</td>
+        <td>{{ job['status'] }}</td>
       </tr>
     </tbody>
   </table>

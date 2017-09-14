@@ -22,17 +22,14 @@
       </thead>
       <tbody>
         {% for job in jobs %}
-
-            <tr class='clickable-row' data-href='/upgrade/{{ job.id }}'>
-              <td><a href="{{ url_for('jobview-detail', id=job.id) }}">{{ job.id }}</a></td>
+            <tr class='clickable-row' data-href='/upgrade/{{ job._id }}'>
+              <td><a href="{{ url_for('jobview-detail', id=job._id, _external=True) }}">{{ job._id }}</a></td>
               <td>{{ job.mop }}</td>
               <td>{{ job.username }}</td>
               <td>{{ job.device }}</td>
               <td>{{ job.status }}</td>
               <td>{{ progress_bar(job) }}</td>
-
             </tr>
-
         {% endfor %}
       </tbody>
     </table>
