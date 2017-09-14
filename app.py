@@ -9,6 +9,7 @@ from bson.json_util import dumps
 from pyosupgrade.procedures.cat4500 import Catalyst4500Upgrade
 from pyosupgrade.procedures.asr1000 import ASR1000Upgrade
 from pyosupgrade.procedures.csr1000 import CSR1000Upgrade
+from pyosupgrade.procedures.healthchecks import IntDescrChecker
 from pyosupgrade.views.logbin import Log, viewer
 
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -48,7 +49,9 @@ METHOD_OF_PROCEDURES = {
     "csr1000v": {"description": "a fake mop",
                  "procedure": CSR1000Upgrade},
     "cat4500-3.8.4-w-fpga": {"description": "Upgrade Catalyst 4500 with FPGA upgrade validation",
-                             "procedure": Catalyst4500Upgrade}
+                             "procedure": Catalyst4500Upgrade},
+    "verify-int-desc": {"description": "Checks that all enabled interfaces have descriptions",
+                        "procedure": IntDescrChecker}
 }
 
 
