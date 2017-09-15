@@ -1,6 +1,7 @@
 import yaml
 import os
 import tasks
+import sys
 from flask import Flask, render_template, request, flash, redirect, url_for
 from flask_restful import Resource, Api
 from flask_pymongo import PyMongo
@@ -11,6 +12,14 @@ from pyosupgrade.procedures.asr1000 import ASR1000Upgrade
 from pyosupgrade.procedures.csr1000 import CSR1000Upgrade
 from pyosupgrade.procedures.healthchecks import IntDescrChecker
 from pyosupgrade.views.logbin import Log, viewer
+
+# Since this is not a python package we need to do some work to treat it like
+# such.
+if __name__ == '__main__':
+    if __package__ is None:
+        sys.path.append(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        )
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 
@@ -241,7 +250,7 @@ api.add_resource(Images,
 
 api.add_resource(Log,
                  '/api/logbin',
-                 '/api/logbin/<int:logid>',
+                 '/api/logbin/<string:logid>',
                  endpoint='logbin')
 
 api.add_resource(CodeUpgradeJobView,
@@ -255,7 +264,11 @@ app.add_url_rule('/',
                  view_func=home,
                  methods=['GET'])
 
-app.add_url_rule('/logbin/viewer/<int:logid>',
+app.add_url_rule('/logbin/viewer',
+                 'viewer',
+                 view_func=viewer)
+
+app.add_url_rule('/logbin/viewer/<string:logid>',
                  'viewer',
                  view_func=viewer)
 
