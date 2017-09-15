@@ -44,7 +44,7 @@ class MongoLogFile(object):
 
         self._attributes = dict()
         self._attributes['id'] = id
-        self._attributes['description'] = None
+        self._attributes['description'] = description
         self._attributes['text'] = text
 
     def as_dict(self):
@@ -89,6 +89,14 @@ class MongoLogFile(object):
     def text(self, text):
         self._attributes['text'] = text
 
+    @property
+    def description(self):
+        return self._attributes['description']
+
+    @description.setter
+    def description(self, text):
+        self._attributes['description'] = text
+
 
     def create(self):
         object_id = ObjectId()
@@ -97,8 +105,8 @@ class MongoLogFile(object):
                 }
 
 
-def viewer(logid=None):
-    try:
+def viewer(logid=None, type=None):
+    # try:
         if logid:
             print "getting log with id {} ".format(logid)
 
@@ -108,14 +116,17 @@ def viewer(logid=None):
             return render_template('viewer.html',
                                    filename="{}.log".format(logid),
                                    contents=job['text'])
+
         else:
+            print "getting logs"
             cursor = mongo.db.logbin.find()
             logs = [log for log in cursor]
+            print logs
             return render_template('log.html',
                                    logs=logs)
 
-    except Exception:
-        abort(404)
+    # except Exception:
+    #     abort(404)
 
 
 class Log(Resource):
@@ -141,9 +152,12 @@ class Log(Resource):
         if 'text' in request.json:
 
             object_id = ObjectId()
-            logfile = MongoLogFile(id=str(object_id), text=request.json['text'])
+            # optional fields
+            desc = request.json.get('description', None)
+            logfile = MongoLogFile(id=str(object_id), description=desc, text=request.json['text'])
+            print logfile.description
             mongo.db.logbin.insert(logfile.as_dict())
             print "Created logfile {}".format(logfile.id)
             print "======================================"
-            print {"url": url_for('viewer', logid=logfile.id)}
-            return {"url": url_for('viewer', logid=logfile.id)}
+            print {"url": url_for('embedded-viewer', logid=logfile.id)}
+            return {"url": url_for('embedded-viewer', logid=logfile.id)}

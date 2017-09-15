@@ -264,12 +264,12 @@ app.add_url_rule('/',
                  view_func=home,
                  methods=['GET'])
 
-app.add_url_rule('/logbin/viewer',
+app.add_url_rule('/logbin',
                  'viewer',
                  view_func=viewer)
 
-app.add_url_rule('/logbin/viewer/<string:logid>',
-                 'viewer',
+app.add_url_rule('/logbin/embedded/<string:logid>',
+                 'embedded-viewer',
                  view_func=viewer)
 
 app.add_url_rule('/upgrade',
