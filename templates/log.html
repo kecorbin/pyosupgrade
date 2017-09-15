@@ -16,6 +16,7 @@
     <thead>
       <tr>
         <th>logid</th>
+        <th>created</th>
         <th>description</th>
         <th>actions</th>
       </tr>
@@ -24,7 +25,9 @@
     {% for log in logs %}
       <tr>
         <td>{{ log['id'] }}</td>
+        <td>{{ log['created'] }}</td>
         <td>{{ log['description'] }}</td>
+
         <td>
 {#            <a href="{{ url_for('viewer-detail', logid=log.id) }}">VIEW</a></td>#}
 	        <button type="button" class="btn-primary bmd-modalButton" data-toggle="modal" data-bmdSrc="{{ url_for('embedded-viewer', logid=log.id) }}" data-bmdWidth="500" data-bmdHeight="281" data-target="#myModal">View</button>

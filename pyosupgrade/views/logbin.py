@@ -1,32 +1,18 @@
 import os
+import json
+import datetime
 from flask import request, url_for, render_template, current_app
 from flask_restful import Resource, abort
 from bson.objectid import ObjectId
+from bson import json_util
 from pymongo import MongoClient
 
 mongo = MongoClient("mongo")
 
 
-
-class LogFile(object):
-
-    def __init__(self, text):
-        logdir = os.getcwd() + '/logs'
-        # make logs directory if one does not exist
-        if not os.path.exists(logdir):
-            os.makedirs(logdir)
-        files = os.listdir('{}/logs'.format(os.getcwd()))
-        # only concerned with numbered files e.g 1.log
-        files = [f for f in files if f.split('.')[0].isdigit()]
-        try:
-            self.id = max(map(lambda x: int(x.split('.')[0]), files)) + 1
-        # ValueError is raised if no numered files are found (dir is empty)
-        except ValueError:
-            self.id = 0
-        fh = open('./logs/{}.log'.format(self.id), 'w+')
-        fh.write(text)
-        fh.close()
-        self.text = text
+def timestamp():
+    d = datetime.datetime.utcnow()
+    return d.strftime('%Y-%m-%dT%H:%M:%SZ')
 
 
 class MongoLogFile(object):
@@ -46,6 +32,7 @@ class MongoLogFile(object):
         self._attributes['id'] = id
         self._attributes['description'] = description
         self._attributes['text'] = text
+        self._attributes['created'] = timestamp()
 
     def as_dict(self):
         # intialize response
@@ -73,6 +60,14 @@ class MongoLogFile(object):
             obj._attributes[k] = v
         return obj
 
+    def to_mongo(self):
+        """
+
+        :return:
+        """
+        print "to mongo {}".format(self.as_dict())
+        return self.as_dict()
+
     @property
     def id(self):
         return self._attributes['id']
@@ -97,14 +92,11 @@ class MongoLogFile(object):
     def description(self, text):
         self._attributes['description'] = text
 
+    @property
+    def timestamp(self):
+        return self._attributes['timestamp']
 
-    def create(self):
-        object_id = ObjectId()
-        data = {"id": str(object_id),
-                "text": self.attributes['text'],
-                }
-
-
+    
 def viewer(logid=None, type=None):
     # try:
         if logid:
@@ -134,14 +126,14 @@ class Log(Resource):
         if logid:
             print "getting log with id {} ".format(logid)
 
-            job = mongo.db.logbin.find_one({"id": logid}, {"_id": 0})
-            print "got log {}".format(job)
-            print job
-            return job
+            log = mongo.db.logbin.find_one({"id": logid}, {"_id": 0})
+            print "got log {}".format(log)
+            print log
+            return json.dumps(log, default=json_util.default)
         else:
 
             cursor = mongo.db.logbin.find({}, {"_id": 0})
-            logs = [doc for doc  in cursor]
+            logs = [doc for doc in cursor]
             print "staging jobs {}".format(doc)
             return logs
 
@@ -156,7 +148,7 @@ class Log(Resource):
             desc = request.json.get('description', None)
             logfile = MongoLogFile(id=str(object_id), description=desc, text=request.json['text'])
             print logfile.description
-            mongo.db.logbin.insert(logfile.as_dict())
+            mongo.db.logbin.insert(logfile.to_mongo())
             print "Created logfile {}".format(logfile.id)
             print "======================================"
             print {"url": url_for('embedded-viewer', logid=logfile.id)}
