@@ -3,11 +3,14 @@
 Python based utility for automating the upgrade of IOS based switches.
 
 #### features
+* workflows/tasks are pretty much anything that can be scripted in python using the [Netmiko](https://github.com/ktbyers/netmiko) SSH library
 * Ability to specify custom workflow for upgrade procedure including pre and post verification
 * Support sourcing IOS images from geographically desirable sources (infoblox, s3, etc)
 * Workflow monitoring with session log output available in near real time accessible via web interface
 * Ability to pause for additional user verification before proceeding.
-* REST based API
+
+
+Oh yeah,most importantly it has a RESTful API for integrating with other tools..spark, etc.
 
 #### Verified on the following platforms
 
@@ -16,7 +19,7 @@ Python based utility for automating the upgrade of IOS based switches.
 * CSR 1000v
 * NX-OS (non-upgrade use case)
 
-This project may require minor changes to work with other platforms.
+This project may require some minor changes to work with other platforms.
 
 ### Sample Procedures included
 * Catalyst 4500 w/ advanced FPGA + QoS queue verification
@@ -28,6 +31,13 @@ This project may require minor changes to work with other platforms.
 # Architecture
 
 This project follows a microservices architecture and uses the following components/technologies.
+
+### [Netmiko](https://github.com/ktbyers/netmiko)
+
+Multi-vendor library to simplify Paramiko SSH connections to network devices.
+We use this to actually perform IOS acrobatics. The basic usage of this library is
+easy to learn, and maps really well to CLI based workflows.
+
 
 ### [Flask](http://flask.pocoo.org/)
 
@@ -98,14 +108,10 @@ KC:
  In this example any switch starting with `AS` will use `10.122.1.10` as the tftp server, likewise, switches
  with starting with `kc` will use `192.168.51.1`
 
-# Certificates
-
-Self-signed certificates are provided for convienence and to provide a base level of encryption, however,
-for anything beyond kicking the tires it would probably be a good idea to generate your own, and replace
-the default ones in [./nginx/ssl](./nginx/ssl)
-
 
 # Running
+
+Okay, so if you've gotten this far, you must be willing to give it a spin!
 
 The easiest way to use this project is with docker-compose
 ```
@@ -115,3 +121,13 @@ docker-compose up
 
 you should be able to browse to [https://localhost](https://localhost) to get started!
 
+
+# Certificates
+
+Self-signed certificates are provided for convienence and to provide a base level of encryption, however,
+for anything beyond kicking the tires it would probably be a good idea to generate your own, and replace
+the default ones in [./nginx/ssl](./nginx/ssl)
+
+# Feedback/Suggestions/PR's
+
+Whatcha thinkin?
