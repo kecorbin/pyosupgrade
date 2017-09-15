@@ -1,14 +1,29 @@
 # pyosupgrade
 
-Python based utility for automating the upgrade of IOS based switches
+Python based utility for automating the upgrade of IOS based switches.
 
-Validated on the Catalyst 4500 series switches.  May require minor changes to work
-with other platforms
+#### features
+* Ability to specify custom workflow for upgrade procedure including pre and post verification
+* Support sourcing IOS images from geographically desirable sources (infoblox, s3, etc)
+* Workflow monitoring with session log output available in near real time accessible via web interface
+* Ability to pause for additional user verification before proceeding.
+* REST based API
+
+#### Verified on the following platforms
+
+* Catalyst 4500
+* ASR 1000
+* CSR 1000v
+* NX-OS (non-upgrade use case)
+
+This project may require minor changes to work with other platforms.
 
 ### Sample Procedures included
 * Catalyst 4500 w/ advanced FPGA + QoS queue verification
-* CSR1000v
+* CSR1000v upgrade
 * ASR1000 w/ ROMMON upgrade
+* Verification that all operational ports have description
+* NX-OS 'basic show command'
 
 # Architecture
 
@@ -21,8 +36,24 @@ based user interface
 
 ### [Celery](http://www.celeryproject.org/)
 
-Celery is an asynchronous task queue/job queue based on distributed message passing. Celery is compWe use celery workers
-to perform upgrades which gives us the ability to perform many upgrades in parallel
+* Celery is an asynchronous task queue/job queue based on distributed message passing.
+* It is focused on real-time operation, but supports scheduling as well.
+* The execution units, called tasks, are executed concurrently on a single or more or all worker servers
+* Tasks can execute asynchronously (in the background) or synchronously (wait until ready).
+
+In our first use case an upgrade is a task, but others could be used. [see here](https://github.com/kecorbin/pyosupgrade/commit/4c3c9a077b5bd7c01f26f8a53a523c262891142a)
+
+### [Flower - Celery monitoring tool](http://flower.readthedocs.io/en/latest/)
+
+Flower is a web based tool for monitoring and administrating Celery clusters
+
+##### Features
+* Real-time monitoring using Celery Events
+* Task progress and history
+* Ability to show task details (arguments, start time, runtime, and more)
+* Graphs and statistics
+* Remote Control of worker nodes
+
 
 ### [Redis](https://redis.io/)
 
@@ -78,7 +109,8 @@ the default ones in [./nginx/ssl](./nginx/ssl)
 
 The easiest way to use this project is with docker-compose
 ```
-docker-compose build && docker-compose up
+docker-compose build
+docker-compose up
 ```
 
 you should be able to browse to [https://localhost](https://localhost) to get started!
