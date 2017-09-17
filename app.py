@@ -12,7 +12,7 @@ from pyosupgrade.procedures.asr1000 import ASR1000Upgrade
 from pyosupgrade.procedures.csr1000 import CSR1000Upgrade
 from pyosupgrade.procedures.healthchecks import IntDescrChecker
 from pyosupgrade.views.logbin import Log, viewer
-
+from pyosupgrade.views.diffview import diff
 # Since this is not a python package we need to do some work to treat it like
 # such.
 if __name__ == '__main__':
@@ -267,6 +267,10 @@ app.add_url_rule('/',
 app.add_url_rule('/logbin',
                  'viewer',
                  view_func=viewer)
+
+app.add_url_rule('/logbin/viewer/<string:log1>/diff/<string:log2>',
+                 'diff-viewer',
+                 view_func=diff)
 
 app.add_url_rule('/logbin/embedded/<string:logid>',
                  'embedded-viewer',
