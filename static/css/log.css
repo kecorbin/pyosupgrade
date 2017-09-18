@@ -33,6 +33,11 @@ pre code {
   padding: 15px 0 0;
 }
 
+.modal-dialog {
+    width: 80%;
+    margin: 30px auto;
+}
+
 .bmd-modalButton {
   display: block;
   margin: 15px auto;

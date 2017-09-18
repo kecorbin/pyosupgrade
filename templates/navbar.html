@@ -1,8 +1,19 @@
+{% set navigation_bar = [
+    ('/upgrade', 'jobview', 'Upgrades'),
+    ('/logbin', 'viewer', 'Logs')]  %}
+{% set active_page = active_page|default('jobview') %}
 <nav class="navbar navbar-inverse">
   <div class="container-fluid">
     <div class="navbar-header">
-      <a class="navbar-brand" href="/">IOS Upgrade Portal</a>
+      <a class="navbar-brand" href="#">IOS Workflow Portal</a>
     </div>
+    <ul class="nav navbar-nav">
+        {% for href, id, caption in navigation_bar %}
+            <li {% if id == active_page %} class="active"{% endif %}>
+                <a href="{{ href|e }}">{{ caption|e }}</a>
+           </li>
+        {% endfor %}
 
+    </ul>
   </div>
 </nav>

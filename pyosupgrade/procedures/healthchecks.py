@@ -79,6 +79,6 @@ class IntDescrChecker(BaseUpgrade):
             self.int_check_status = "warning"
         else:
             self.int_check_status = "success"
-
+        self.status = "Completed"
         # print messages are displayed in worker console
         print('staging thread for {} exiting...'.format(self.device))

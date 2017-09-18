@@ -8,53 +8,17 @@
 {% block content %}
 
 <div class="container-fluid">
-<H1>Advanced Delta Viewer</H1>
-    <div class="container-fluid">
-{#        <div class="row">#}
-{#            <div class="col-lg-12">#}
-{#                <button onclick="deleteCR('/cr/{{change.cr}}')" class="btn btn-danger btn-md pull-right">Delete this delta</button>#}
-{#            </div>#}
-{#        </div>#}
-{#        <div class="row">#}
-{#            <div class="col-md-6">#}
-{#                The following devices will be checked:#}
-{#                <ul class="list-group">#}
-{#                    {% for host in hosts %}#}
-{#                    <li class="list-group-item"><a href="?show_device={{host}}">{{ host }}</a></li>#}
-{#                    {% endfor %}#}
-{#                </ul>#}
-{#            </div>#}
-{#            <div class="col-md-6">#}
-{#                The following commands will be captured:#}
-{#                <ul class="list-group">#}
-{#                    {% for command in commands %}#}
-{#                    <li class="list-group-item"><a href="?show_command={{command}}">{{ command }}</a></li>#}
-{#                    {% endfor %}#}
-{#                </ul>#}
-{##}
-{#            </div>#}
-{#        </div>#}
-{#        <strong>Note:</strong> You can filter the displayed results by clicking a host/command above#}
-{#        <hr/>#}
-{#    </div>#}
-    <div class="container-fluid">
-{#        <div class="row">#}
-{#            <div class="col-md-12 text-center">#}
-{#                <button onclick="showmodal('/cr/{{change.cr}}/snap');" class="btn btn-default btn-lg">Take Snap#}
-{#                    <span class="glyphicon glyphicon-camera"></span>#}
-{#                </button>#}
-{#            </div>#}
-{#        </div>#}
+<H1>Verification Delta Viewer</H1>
         <div class="row">
             <div class="col-lg-6">
                 <h1>
-                    <span>Baseline</span>
+                    <span>Pre-Verification</span>
                 </h1>
 
             </div>
             <div class="col-lg-6">
                 <h1>
-                    <span>Now</span>
+                    <span>Post-Verification</span>
                 </h1>
             </div>
 

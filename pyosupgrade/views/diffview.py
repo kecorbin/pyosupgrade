@@ -65,6 +65,8 @@ def diff(log1, log2):
     :param log2:
     :return:
     """
+    show_command = request.args.get("show_command", None)
+
     # if we receive a URL we only need the id
     if '/logbin/embedded/' in log1:
         log1 =log1.split('/logbin/embedded/')[1]
@@ -77,6 +79,6 @@ def diff(log1, log2):
     print log1lines
     print log2lines
 
-    diff = HtmlDiffer(wrapcolumn=120)
+    diff = HtmlDiffer(wrapcolumn=80)
     table = diff.make_table(log1lines, log2lines)
     return render_template('diff-view.html', table=table)

@@ -75,7 +75,7 @@ $(document).on('click', '.panel-heading span.clickable', function(e){
 
 {% if before and after %}
    <div class="row">
-    <a href="{{ url_for('diff-viewer', log1=before, log2=after) }}">
+    <a target="_blank" href="{{ url_for('diff-viewer', log1=before, log2=after) }}">
         Click here to see a detailed view of pre/post verification commands
     </a>
 {% endif %}
