@@ -120,6 +120,16 @@ class IOSUpgrade(BaseUpgrade):
             self.status = "FAILED - COULD NOT CONNECT TO DEVICE"
             exit()
 
+        # Capture pre verification commands
+        if self.verification_commands:
+            pre_output = generic.capture_commands(connected, self.verification_commands)
+            if pre_output:
+                self.pre_verification_commands_status = "success"
+                self.pre_verification_commands_url = self.logbin(pre_output)
+            else:
+                self.status = "FAILED - COULD NOT GATHER VERIFICATION COMMANDS"
+                exit(1)
+
         # Backup Running Config
         self.status = "BACKING UP RUNNING CONFIG"
         output = connected.show('show running-config')
@@ -219,6 +229,17 @@ class IOSUpgrade(BaseUpgrade):
 
         custom_1 = self.custom_verification_1()
         custom_2 = self.custom_verification_2()
+
+        # Capture post verification commands
+        if self.verification_commands:
+            post_output = generic.capture_commands(online, self.verification_commands)
+            if post_output:
+                self.post_verification_commands_status = "success"
+                self.post_verification_commands_url = self.logbin(post_output)
+            else:
+                self.status = "FAILED - COULD NOT GATHER POST VERIFICATION COMMANDS"
+                exit(1)
+
 
         if all([online, upgraded, custom_1, custom_2]):
             self.status = "UPGRADE SUCCESSFUL"

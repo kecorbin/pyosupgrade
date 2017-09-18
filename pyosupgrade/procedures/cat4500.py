@@ -22,6 +22,23 @@ class Catalyst4500Upgrade(IOSUpgrade):
               ]
         return steps
 
+    @property
+    def verification_commands(self):
+        commands = [
+            'show version',
+            'show bootvar',
+            'show redundancy',
+            'show inventory',
+            'show environment',
+            'show module',
+            'show run',
+            'show cdp neighbors',
+            'show int status err-disabled',
+            'show ip arp',
+            'show spanning-tree',
+            'show mac address-table'
+        ]
+        return commands
 
     def register_custom_tasks(self):
         self.custom_verification_1_name = "Verify FPGA Upgrades"

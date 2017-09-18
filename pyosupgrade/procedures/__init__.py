@@ -59,6 +59,10 @@ class BaseUpgrade(object):
     def upgrade_process(self):
         raise NotImplementedError
 
+    @property
+    def verification_commands(self):
+        return None
+
     def register_custom_tasks(self):
         self.custom_verification_1_name = "Custom Verification 1"
         self.custom_verification_2_name = "Custom Verification 2"
@@ -198,6 +202,42 @@ class BaseUpgrade(object):
     @copy_code_to_slave_log_url.setter
     def copy_code_to_slave_log_url(self, status):
         self._attributes["copy_code_to_slave_log_url"] = status
+        self._update_job()
+
+    @property
+    def pre_verification_commands_status(self):
+        return self._attributes.get('pre_verification_commands_status', 'default')
+
+    @pre_verification_commands_status.setter
+    def pre_verification_commands_status(self, status):
+        self._attributes['pre_verification_commands_status'] = status
+        self._update_job()
+
+    @property
+    def pre_verification_commands_url(self):
+        return self._attributes.get('pre_verification_commands_url', None)
+
+    @pre_verification_commands_url.setter
+    def pre_verification_commands_url(self, url):
+        self._attributes['pre_verification_commands_url'] = url
+        self._update_job()
+
+    @property
+    def post_verification_commands_status(self):
+        return self._attributes.get('post_verification_commands_status', 'default')
+
+    @post_verification_commands_status.setter
+    def post_verification_commands_status(self, status):
+        self._attributes['post_verification_commands_status'] = status
+        self._update_job()
+
+    @property
+    def post_verification_commands_url(self):
+        return self._attributes.get('post_verification_commands_url', None)
+
+    @post_verification_commands_url.setter
+    def post_verification_commands_url(self, url):
+        self._attributes['post_verification_commands_url'] = url
         self._update_job()
 
     @property
