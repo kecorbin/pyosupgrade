@@ -1,9 +1,51 @@
 from difflib import HtmlDiff
 from flask import request, render_template
 from pymongo import MongoClient
+from lxml import etree
 
 mongo = MongoClient("mongo")
 
+
+def get_command_list(text):
+    """
+    find XML encoded command list from pre/post verification output
+    :param text: str
+    :return: list of commands
+    """
+    parser = etree.XMLParser(recover=True)
+    root = etree.fromstring(text, parser)
+        # after_xml = etree.fromstring(obj.after)
+    commands = root.xpath("//command")
+    command_list = list()
+    for c in commands:
+        command_list.append(c.attrib.get('cmd'))
+    return command_list
+
+
+def get_command_table(before_text, after_text, show_command):
+    """
+    Returns an HTML table of the differences between a specific command on all devices
+
+    :param before_xml:
+    :param after_xml:
+    :param show_command:
+    :return:
+    """
+    parser = etree.XMLParser(recover=True)
+    before_xml = etree.fromstring(before_text, parser)
+    after_xml = etree.fromstring(after_text, parser)
+    xpath_query = "//command[@cmd='{}']/text()".format(show_command)
+    before_command_lines = list()
+    after_command_lines = list()
+
+    for device in before_xml.xpath(xpath_query):
+        print device.split('\n')
+        before_command_lines = before_command_lines + device.split('\n')
+    for device in after_xml.xpath(xpath_query):
+        after_command_lines = after_command_lines + device.split('\n')
+    diff = HtmlDiffer(wrapcolumn=120)
+    table = diff.make_table(before_command_lines, after_command_lines)
+    return table
 
 
 class HtmlDiffer(HtmlDiff):
@@ -73,12 +115,28 @@ def diff(log1, log2):
     if '/logbin/embedded/' in log2:
         log2 =log2.split('/logbin/embedded/')[1]
 
-    log1lines = mongo.db.logbin.find_one({"id": log1}, {"_id": 0})['text'].split('\n')
-    log2lines = mongo.db.logbin.find_one({"id": log2}, {"_id": 0})['text'].split('\n')
 
+    log1doc = mongo.db.logbin.find_one({"id": log1}, {"_id": 0})['text']
+    log2doc = mongo.db.logbin.find_one({"id": log2}, {"_id": 0})['text']
+
+    # Get list of xml encoded commands
+    try:
+        commands = get_command_list(log1doc)
+    except Exception:
+        commands = None
+
+    # we need list of lines for HtmlDiffer
+    log1lines = log1doc.split('\n')
+    log2lines = log2doc.split('\n')
     print log1lines
     print log2lines
 
     diff = HtmlDiffer(wrapcolumn=80)
-    table = diff.make_table(log1lines, log2lines)
-    return render_template('diff-view.html', table=table)
+    if show_command is not None:
+        table = get_command_table(log1doc, log2doc, show_command)
+    else:
+        table = diff.make_table(log1lines, log2lines)
+    if commands:
+        return render_template('diff-view.html', table=table, commands=commands)
+    else:
+        return render_template('diff-view.html', table=table)

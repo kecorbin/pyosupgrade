@@ -9,6 +9,23 @@
 
 <div class="container-fluid">
 <H1>Verification Delta Viewer</H1>
+
+        {% if commands %}
+        <div class="col-md-6 col-md-offset-3">
+            <div class="form-group">
+                <label for="sel1">Select Command:</label>
+
+                <select class="form-control" id="sel1" onChange="window.location.href=this.value">
+                    <option disabled selected value> -- select an option -- </option>
+                    <option value="?">Show all commands</option>
+                    {% for cmd in commands  %}
+                        <option value="?show_command={{ cmd }}">{{ cmd }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        {% endif %}
+
         <div class="row">
             <div class="col-lg-6">
                 <h1>
