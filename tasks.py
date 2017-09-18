@@ -55,14 +55,5 @@ def upgrade_launcher(url, mop, step, username, password):
     # print job
 
     procedure = METHOD_OF_PROCEDURES[mop]['procedure'](url, username, password)
-    print procedure
     result = getattr(procedure, step)()
-    print result
-    # start an upgrade thread which uses the job api for updating status
-    # depending on operation we will trigger the appropriate process
-    # thread.start_upgrade()
-    #
-    # operation="start_upgrade" invokes IOSUpgrade.start_upgrade()
-
-    # return thread
-
+    print "Looks like we are just about done here! See You next time!"
