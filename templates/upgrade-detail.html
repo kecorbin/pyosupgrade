@@ -73,6 +73,12 @@ $(document).on('click', '.panel-heading span.clickable', function(e){
     </tbody>
   </table>
 
+{% if before and after %}
+   <div class="row">
+    <a href="{{ url_for('diff-viewer', log1=before, log2=after) }}">
+        Click here to see a detailed view of pre/post verification commands
+    </a>
+{% endif %}
 {%  for item in job.steps %}
         <div class="row">
           <div class="panel panel-{{ item.1 }}">

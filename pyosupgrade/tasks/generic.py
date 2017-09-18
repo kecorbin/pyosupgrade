@@ -6,6 +6,28 @@ import sys
 import re
 
 
+def capture_commands(device, commands):
+    """
+    Executes a list of commands on a device
+
+    This adds some context information (ip/command) as well as basic XML tags used for sorting results later
+
+    :param device:  pyntc
+    :param commands: list of commands to execute on each device
+    :return: string output from commands w/ basic XML tags for sorting
+    """
+    device.open()
+    output = "<snapshot>\n"
+    for command in commands:
+        output += '<command cmd="{}">\n'.format(command.strip())
+        output += "\n{}\n".format(command)
+        output += "{}\n".format('-' * 80)
+        output += device.native.send_command(command)
+        output += "\n</command>\n"
+    output += "\n</snapshot>\n"
+    return output
+
+
 def verify_sup_redundancy(device):
     """
     Returns True if supervisors are in SSO mode

@@ -65,8 +65,15 @@ def diff(log1, log2):
     :param log2:
     :return:
     """
+    # if we receive a URL we only need the id
+    if '/logbin/embedded/' in log1:
+        log1 =log1.split('/logbin/embedded/')[1]
+    if '/logbin/embedded/' in log2:
+        log2 =log2.split('/logbin/embedded/')[1]
+
     log1lines = mongo.db.logbin.find_one({"id": log1}, {"_id": 0})['text'].split('\n')
     log2lines = mongo.db.logbin.find_one({"id": log2}, {"_id": 0})['text'].split('\n')
+
     print log1lines
     print log2lines
 

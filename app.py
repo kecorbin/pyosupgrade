@@ -82,9 +82,17 @@ def jobview(id=None):
             doc = mongo.db.upgrades.find_one({"id": id})
             # deserialize the job from mongo
             job = METHOD_OF_PROCEDURES[doc['mop']]['procedure'].from_dict(doc)
+            before = getattr(job, 'pre_verification_commands_url', None)
+            after = getattr(job, 'post_verification_commands_url', None)
+            if before and after:
+                before = before.split('/')[-1]
+                after = after.split('/')[-1]
+
             return render_template('upgrade-detail.html',
                                    title="Job Detail",
                                    job=job,
+                                   before=before,
+                                   after=after,
                                    procedures=METHOD_OF_PROCEDURES)
         # job list view
         else:
