@@ -40,6 +40,13 @@ def verify_sup_redundancy(device):
 
 
 def copy_remote_image(device, url, file_system="bootflash:"):
+    """
+
+    :param device: pyntc device
+    :param url: source of image
+    :param file_system: destination file system
+    :return: bool, str tuple containing whether the operation was successful and any output
+    """
     device.open()
     image = url.split('/')[-1]
     # checking where the image already exists.  should be rare
@@ -123,7 +130,7 @@ def verify_image(device, image):
     :param device: ntc_device
     :param image: str image name including filesystem
     :param md5hash: str expected md5 hash
-    :return: bool
+    :return: bool, str tuple of True if verification is successful, output of verification
     """
     print "Calulating md5 hash of remote file...."
     device.open()
