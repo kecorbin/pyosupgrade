@@ -55,26 +55,39 @@ class IntDescrChecker(BaseUpgrade):
             self.status = "FAILED CONNECT"
 
         self.status = "Verifying Interfaces"
-        output = device.native.send_command('show interface description')
-
-        interfaces = [l.split() for l in output.split('\n')]
-
         badlist = list()
-        for i in interfaces:
-            # [u'Gi1/1', u'up', u'up', u'LAB_GW_OUT']
-            # [u'Fa1', u'down', u'down']
-            if (i[1] == 'up') and (i[2] == 'up'):
-                try:
-                    descr = i[3]
-                except:
+        if 'NX-OS' in device.native.send_command('show version'):
+            output = device.native.send_command('show interface status')
+            interfaces = [l.split() for l in output.split('\n') if l.startswith('Eth')]
+            for i in interfaces[4:]:
+                if (i[2] == 'connected') and (i[1] == '--'):
                     badlist.append(i)
-                    pass
 
-        output = ""
-        for i in badlist:
-            output += "{} is {}/{} and has no description\n".format(i[0], i[1], i[2])
+            output = ""
+            for i in badlist:
+                output += "{} is {} and has no description\n".format(i[0], i[2])
+
+        else:
+            output = device.native.send_command('show interface description')
+
+            interfaces = [l.split() for l in output.split('\n')]
+
+            for i in interfaces:
+                # [u'Gi1/1', u'up', u'up', u'LAB_GW_OUT']
+                # [u'Fa1', u'down', u'down']
+                if (i[1] == 'up') and (i[2] == 'up'):
+                    try:
+                        descr = i[3]
+                    except:
+                        badlist.append(i)
+                        pass
+
+            output = ""
+            for i in badlist:
+                output += "{} is {}/{} and has no description\n".format(i[0], i[1], i[2])
 
         self.int_check_log_url = self.logbin(output)
+
         if len(badlist) > 0:
             self.int_check_status = "warning"
         else:
