@@ -2,9 +2,6 @@
 {% set active_page = "jobview" %}
 {% from "progress_bars.html" import progress_bar %}
 {% include "modals.html" %}
-<head>
-  <meta http-equiv="refresh" content="60" />
-</head>
 {% block content %}
 
 <div class="row">
@@ -26,46 +23,22 @@
           <th>Progress</th>
         </tr>
       </thead>
-      <tbody>
-        {% for job in jobs %}
-            <tr class='clickable-row' data-href='/upgrade/{{ job._id }}'>
-              <td><a href="{{ url_for('jobview-detail', id=job._id, _external=True) }}">{{ job._id }}</a></td>
-              <td>{{ job.mop }}</td>
-              <td>{{ job.username }}</td>
-              <td>{{ job.device }}</td>
-              <td>{{ job.status }}</td>
-              <td>{{ progress_bar(job) }}</td>
-            </tr>
-        {% endfor %}
-      </tbody>
+{#      <tbody>#}
+{#        {% for job in jobs %}#}
+{#            <tr class='clickable-row' data-href='/upgrade/{{ job._id }}'>#}
+{#              <td><a href="{{ url_for('jobview-detail', id=job._id, _external=True) }}">{{ job._id }}</a></td>#}
+{#              <td>{{ job.mop }}</td>#}
+{#              <td>{{ job.username }}</td>#}
+{#              <td>{{ job.device }}</td>#}
+{#              <td>{{ job.status }}</td>#}
+{#              <td>{{ progress_bar(job) }}</td>#}
+{#            </tr>#}
+{#        {% endfor %}#}
+{#      </tbody>#}
     </table>
 
   </div>
 </div>
-<script>
-
-var table = $('#upgrades').DataTable()
-{#var table = $('#upgrades').DataTable( {#}
-{#    "ajax": {#}
-{#            "type" : "GET",#}
-{#            "url" : "/api/upgrade",#}
-{#            "dataSrc": function ( json ) {#}
-{#                //Make your callback here.#}
-{#                alert("Done!");#}
-{#                console.log(json)#}
-{#                return json;#}
-{#            }#}
-{#            },#}
-{#    "columns": [#}
-{#            { "data": "id" },#}
-{#            { "data": "mop" },#}
-{#            { "data": "username" },#}
-{#            { "data": "device" },#}
-{#            { "data": "" },#}
-{##}
-{##}
-{#        ]#}
-{#    } );#}
-</script>
+<script src="/static/js/upgrade-table.js"></script>
 {% endblock %}
 
