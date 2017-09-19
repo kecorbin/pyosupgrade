@@ -123,7 +123,7 @@ def jobview(id=None):
             tasks.upgrade_launcher.delay(url, mop, 'start_upgrade', username, password)
 
             # Notify the user
-            flash("Upgrade Started", "success")
+            flash("Upgrade Started", "alert-success")
             return redirect(url_for('jobview', id=id, _external=True))
 
         # handle the case where a new job is created
@@ -159,7 +159,7 @@ def jobview(id=None):
                     # start staging
                     tasks.upgrade_launcher.delay(url, mop, 'start_staging', username, password)
 
-            flash("Submitted Job", "success")
+            flash("Submitted Job", "alert-success")
             return redirect(url_for('jobview', _external=True))
 
 

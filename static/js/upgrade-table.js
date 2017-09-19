@@ -49,6 +49,9 @@ var table = $('#upgrades').DataTable( {
                     } else if (row.status.includes("UPGRADE SUCCESS")) {
                         kls = "success"
                         value = "100"
+                    } else if (row.status.includes("Completed")) {
+                        kls = "success"
+                        value = "100"
                     }
 
                     var bar = '<div class="progress-bar progress-bar-' + kls + ' progress-bar-striped" role="progressbar" aria-valuenow="' + value + '" aria-valuemin="0" aria-valuemax="' + value + '" style="width:' + value + '%"> ' + value + '% </div>'
