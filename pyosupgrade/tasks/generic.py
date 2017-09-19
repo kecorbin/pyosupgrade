@@ -42,27 +42,35 @@ def verify_sup_redundancy(device):
 def copy_remote_image(device, url, file_system="bootflash:"):
     device.open()
     image = url.split('/')[-1]
-    print "Setting file prompt to quiet"
-    device.native.send_config_set(["file prompt quiet"])
-    print "Copying image from {} to {}{}".format(url, file_system, image)
-    command = 'copy {} {}{}'.format(url, file_system, image)
-    output = device.native.send_command_expect(command, delay_factor=30)
-    print output
-    try:
-        if 'bytes copied' in output:
-            stats = [l for l in output.split('\n') if 'bytes copied' in l][0]
-            print stats
-            print "Restoring file prompt to alert"
-            device.native.send_config_set(["file prompt alert"])
-            return True, output
+    # checking where the image already exists.  should be rare
+    ls = device.native.send_command('dir {}'.format(file_system))
+    if image in ls:
+        msg = "Image already present verifying hash\n"
+        msg += "-----------------------\n"
+        valid, verify_output = verify_image(device, "{}{}".format(file_system, image))
+        msg += verify_output
+        if valid:
+            return True, msg
         else:
-            print "Restoring file prompt to alert"
-            device.native.send_config_set(["file prompt alert"])
+            return False, msg
+    else:
+        # proceed with upgrade
+        print "Setting file prompt to quiet"
+        # Disables's confirmation for dest filename, and automatically verifies MD5
+        device.native.send_config_set(["file prompt quiet", "file verify auto"])
+        print "Copying image from {} to {}{}".format(url, file_system, image)
+        command = 'copy {} {}{}'.format(url, file_system, image)
+        output = device.native.send_command_expect(command, delay_factor=30)
+        # look for all the following keywords in the output
+        expected_patterns = ["bytes copied", "signature successfully verified"]
+        try:
+            if all(x in output for x in expected_patterns):
+                print "Image copied and successfully verified"
+                return True, output
+            else:
+                return False, output
+        except IOError:
             return False, output
-    except IOError:
-        print "Restoring file prompt to alert"
-        device.native.send_config_set(["file prompt alert"])
-        return False, output
 
 
 def copy_image_to_slave(device,
@@ -79,40 +87,52 @@ def copy_image_to_slave(device,
     """
     print "Synchronizing image to secondary supervisor"
     output = ""
-    try:
-        device.open()
-        # eventually we should just keep this enabled
-        device.native.send_config_set(["file prompt quiet"])
+    device.open()
+
+    # checking where the image already exists.  should be rare
+    ls = device.native.send_command('dir {}'.format(dst_fs))
+    if image in ls:
+        msg = "Image already present verifying hash\n"
+        msg += "-----------------------\n"
+        valid, verify_output = verify_image(device, "{}{}".format(dst_fs, image))
+        msg += verify_output
+        if valid:
+            return True, msg
+        else:
+            return False, msg
+    else:
+        # image is not present, proceed with copy
+        device.native.send_config_set(["file prompt quiet", "file verify auto"])
         command = 'copy {}{} {}{}'.format(source_fs, image,
                                           dst_fs, image)
         output = device.native.send_command_expect(command, delay_factor=30)
-        return True, output
-    except:
-        return False, output
+        expected_patterns = ["bytes copied", "signature successfully verified"]
+        # checks that all expected_patterns are present in the output
+        if all(x in output for x in expected_patterns):
+            return True, output
+        else:
+            return False, output
 
 
-def verify_image(device, image, md5hash=None):
+
+def verify_image(device, image):
     """
     Perform md5 verfication of *image* on device using a provided md5hash
     Returns True if md5 hash is valid
 
     :param device: ntc_device
-    :param image: str image name
+    :param image: str image name including filesystem
     :param md5hash: str expected md5 hash
     :return: bool
     """
     print "Calulating md5 hash of remote file...."
     device.open()
-    output = device.native.send_command_expect('verify /md5 {}'.format(image),
-                                               delay_factor=5)
-    match = md5hash.lower() in output
-
-    if match:
-        print output
+    output = device.native.send_command_expect('verify {}'.format(image),
+                                               delay_factor=10)
+    if "signature successfully verified" in output:
+        return True, output
     else:
-        print "Failed to verify image"
-    return match
-
+        return False, output
 
 def ping(host):
     """
