@@ -95,7 +95,7 @@ class ASR1000Upgrade(IOSUpgrade):
         rommon_url = "tftp://{}/{}".format(regional_fs, rommon)
         rommon_transfer, rommon_transfer_output = generic.copy_remote_image(device, rommon_url)
         transfer_output = "{}\n\n{}".format(ios_transfer_output, rommon_transfer_output)
-        logbin_url = self.logbin(transfer_output)
+        logbin_url = self.logbin(transfer_output, description="image transfer for {}".format(self.device))
         self.code_upload_log_url = logbin_url
         if ios_transfer and rommon_transfer:
             print('File Transfer Suceeded')
@@ -143,7 +143,7 @@ class ASR1000Upgrade(IOSUpgrade):
         output = connected.show('show running-config')
         if output:
             self.backup_running_config_status = "success"
-            logbin_url = self.logbin(output)
+            logbin_url = self.logbin(output, description="backup running config for {}".format(self.device))
             self.backup_running_config_log_url = logbin_url
         else:
             self.status = "FAILED - COULD NOT BACKUP RUNNING CONFIG"
@@ -154,7 +154,7 @@ class ASR1000Upgrade(IOSUpgrade):
         result = generic.set_bootvar(connected, image=self.target_image)
         bootvar_result, bootvar_output = result
         if bootvar_output:
-            logbin_url = self.logbin(bootvar_output)
+            logbin_url = self.logbin(bootvar_output, description="setting boot variable for {}".format(self.device))
             self.set_bootvar_status_log_url = logbin_url
             self.set_bootvar_status = "success"
         else:
@@ -167,7 +167,8 @@ class ASR1000Upgrade(IOSUpgrade):
         valid_bootvar, valid_bootvar_output = result
 
         if valid_bootvar:
-            logbin_url = self.logbin(valid_bootvar_output)
+            logbin_url = self.logbin(valid_bootvar_output,
+                                     description="verify boot variable for {}".format(self.device))
             self.verify_bootvar_status_log_url = logbin_url
             self.set_bootvar_status = "success"
             self.verify_bootvar_status = "success"
@@ -180,7 +181,7 @@ class ASR1000Upgrade(IOSUpgrade):
         self.status = "RELOADING"
         reload_output = generic.reload_device(connected,
                                               command=self.reload_command)
-        logbin_url = self.logbin("{}".format(reload_output))
+        logbin_url = self.logbin("{}".format(reload_output), description="reload output for {}".format(self.device))
         self.reload_status_log_url = logbin_url
 
         reloaded = True
@@ -232,7 +233,7 @@ class ASR1000Upgrade(IOSUpgrade):
 
         # ship the log file and move on
         print image_output
-        logbin_url = self.logbin(image_output)
+        logbin_url = self.logbin(image_output, description="verify upgrade for {}".format(self.device))
         self.verify_upgrade_log_url = logbin_url
 
         custom_1 = self.custom_verification_1()

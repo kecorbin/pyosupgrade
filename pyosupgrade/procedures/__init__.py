@@ -88,8 +88,10 @@ class BaseUpgrade(object):
                 print("rur roh - i had a problem updating the api")
             print resp.text
 
-    def logbin(self, msg):
-        data = {"text": msg}
+    def logbin(self, msg, description=None):
+        data = {"text": msg,
+                "description": description}
+
         resp = requests.post(self.logbin_url,
                              data=json.dumps(data),
                              headers=self.request_headers)

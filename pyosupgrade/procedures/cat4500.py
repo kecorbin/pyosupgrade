@@ -156,7 +156,7 @@ class Catalyst4500Upgrade(IOSUpgrade):
         print("Verify FPGA")
         self.status = "VERIFYING FPGA UPGRADE"
         fpga_status, fpga_output = self._verify_fpga(device)
-        logbin_url = self.logbin(fpga_output)
+        logbin_url = self.logbin(fpga_output, description="fpga upgrade verification for {}".format(self.device))
         self.custom_verification_1_status_log_url = logbin_url
 
         if fpga_status:
@@ -171,7 +171,8 @@ class Catalyst4500Upgrade(IOSUpgrade):
         self.custom_verification_2_name = "Verify Supervisor TX Queues"
         self.status = "verify tx queues"
         verified, output = self._ensure_queues_are_enabled()
-        self.custom_verification_2_status_log_url = self.logbin(output)
+        description="sup tx queue verification for {}".format(self.device)
+        self.custom_verification_2_status_log_url = self.logbin(output, description=description)
         if verified:
             self.custom_verification_2_status = "success"
             return True
