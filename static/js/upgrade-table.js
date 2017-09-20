@@ -19,9 +19,12 @@ var table = $('#upgrades').DataTable( {
                     if (row.status.includes("FAILED")) {
                         kls = 'danger'
                         value = '100'
-                    } else if (row.status.includes("TRANFERRING")) {
+                    } else if (row.status.includes("TRANSFERRING")) {
                         kls = "success active"
                         value = "25"
+                    } else if (row.status.includes("CONNECTING")) {
+                        kls = "success active"
+                        value = "10"
                     } else if (row.status.includes("SYNCHRONIZING")) {
                         kls = "success active"
                         value = "40"
