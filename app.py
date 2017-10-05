@@ -1,6 +1,6 @@
 import yaml
 import os
-import tasks
+# import tasks
 import sys
 from flask import Flask, render_template, request, flash, redirect, url_for
 from flask_restful import Resource, Api
@@ -11,8 +11,11 @@ from pyosupgrade.procedures.cat4500 import Catalyst4500Upgrade
 from pyosupgrade.procedures.asr1000 import ASR1000Upgrade
 from pyosupgrade.procedures.csr1000 import CSR1000Upgrade
 from pyosupgrade.procedures.healthchecks import IntDescrChecker
+from pyosupgrade.procedures.configuration import BackupRunningConfiguration
 from pyosupgrade.views.logbin import Log, viewer
 from pyosupgrade.views.diffview import diff
+from celery import Celery
+from flask import url_for
 # Since this is not a python package we need to do some work to treat it like
 # such.
 if __name__ == '__main__':
@@ -60,9 +63,52 @@ METHOD_OF_PROCEDURES = {
     "cat4500-3.8.4-w-fpga": {"description": "Upgrade Catalyst 4500 with FPGA upgrade validation",
                              "procedure": Catalyst4500Upgrade},
     "verify-int-desc": {"description": "Checks that all enabled interfaces have descriptions",
-                        "procedure": IntDescrChecker}
+                        "procedure": IntDescrChecker},
+    "get-running-configuration": {"description": "Captures the running configuration for the devices",
+                                  "procedure": BackupRunningConfiguration}
 }
 
+
+
+def make_celery(app):
+    celery = Celery(app.import_name, backend=app.config['CELERY_RESULT_BACKEND'],
+                    broker=app.config['CELERY_BROKER_URL'])
+    celery.conf.update(app.config)
+    TaskBase = celery.Task
+    class ContextTask(TaskBase):
+        abstract = True
+        def __call__(self, *args, **kwargs):
+            with app.app_context():
+                return TaskBase.__call__(self, *args, **kwargs)
+    celery.Task = ContextTask
+    return celery
+
+celery = make_celery(app)
+
+
+@celery.task
+def upgrade_launcher(url, mop, step, username, password):
+    """
+    this is essentially a class factory which initiates an
+    IOS upgrade job from a request via webform or REST API
+
+    :param url: str the url where the job details should be retrieved/updated
+    :param stage str the step of the mop to begin (start_staging, start_upgrading)
+    :param mop str method of procedure name that will be launched
+    :param username: str username to execute the procedure
+    :param password: string ios password
+
+    :return:
+    """
+    print "Hello, i'm your celery worker"
+    print ("Executing {} step {} for upgrade task {} on behalf of {}".format(mop, step, url, username))
+    # potentially one last time to update the backend
+    # job = CodeUpgradeJob.query.filter_by(id=job['id']).first()
+    # print job
+
+    procedure = METHOD_OF_PROCEDURES[mop]['procedure'](url, username, password)
+    result = getattr(procedure, step)()
+    print "Looks like we are just about done here! See You next time!"
 
 @app.errorhandler(404)
 def page_not_found(e):
@@ -120,8 +166,7 @@ def jobview(id=None):
             print "RESPONSE FROM MONGO: {}".format(doc)
             job = METHOD_OF_PROCEDURES[doc['mop']]['procedure'].from_dict(doc)
             url = CALLBACK_API + '/{}'.format(id)
-            tasks.upgrade_launcher.delay(url, mop, 'start_upgrade', username, password)
-
+            task = upgrade_launcher.delay(url, mop, 'start_upgrade', username, password)
             # Notify the user
             flash("Upgrade Started", "alert-success")
             return redirect(url_for('jobview', id=id, _external=True))
@@ -140,7 +185,7 @@ def jobview(id=None):
                 # make sure the device name/ip is valid,
                 # this could use better verification e.g ping/etc
                 if len(d) > 5:
-                    print "Creating code upload job for {}".format(d)
+                    print "Dispatching worker for {}".format(d)
                     object_id = ObjectId()
                     url = CALLBACK_API + "/{}".format(object_id)
                     data = {"_id": object_id,
@@ -157,7 +202,7 @@ def jobview(id=None):
                     # insert
                     mongo.db.upgrades.insert(data)
                     # start staging
-                    tasks.upgrade_launcher.delay(url, mop, 'start_staging', username, password)
+                    upgrade_launcher.delay(url, mop, 'start_staging', username, password)
 
             flash("Submitted Job", "alert-success")
             return redirect(url_for('jobview', _external=True))
@@ -185,7 +230,7 @@ class CodeUpgradeJobView(Resource):
         if operation == "start" and id:
             job = mongo.db.upgrades.find_one({"id": id}, {"_id": 0, "update_time": 0})
             url = CALLBACK_API + "/{}".format(job['id'])
-            tasks.upgrade_launcher.delay(url, job['mop'], 'start_upgrade', request.json['username'], request.json['password'])
+            upgrade_launcher.delay(url, job['mop'], 'start_upgrade', request.json['username'], request.json['password'])
             return job
 
         # endpoint to update and existing job
@@ -210,7 +255,7 @@ class CodeUpgradeJobView(Resource):
                 mongo.db.upgrades.insert(data)
                 job = mongo.db.upgrades.find_one({"id": object_id})
                 url = CALLBACK_API + "/{}".format(str(object_id))
-                tasks.upgrade_launcher.delay(url, request.json['mop'],
+                upgrade_launcher.delay(url, request.json['mop'],
                                              'start_staging',
                                              request.json['username'],
                                              request.json['password'])

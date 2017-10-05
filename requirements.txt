@@ -1,3 +1,4 @@
+appdynamics
 amqp==2.2.1
 aniso8601==1.2.1
 asn1crypto==0.22.0
