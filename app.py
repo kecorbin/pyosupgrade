@@ -11,6 +11,7 @@ from pyosupgrade.procedures.cat4500 import Catalyst4500Upgrade
 from pyosupgrade.procedures.asr1000 import ASR1000Upgrade
 from pyosupgrade.procedures.csr1000 import CSR1000Upgrade
 from pyosupgrade.procedures.healthchecks import IntDescrChecker
+from pyosupgrade.procedures.configuration import BackupRunningConfiguration
 from pyosupgrade.views.logbin import Log, viewer
 from pyosupgrade.views.diffview import diff
 # Since this is not a python package we need to do some work to treat it like
@@ -60,7 +61,9 @@ METHOD_OF_PROCEDURES = {
     "cat4500-3.8.4-w-fpga": {"description": "Upgrade Catalyst 4500 with FPGA upgrade validation",
                              "procedure": Catalyst4500Upgrade},
     "verify-int-desc": {"description": "Checks that all enabled interfaces have descriptions",
-                        "procedure": IntDescrChecker}
+                        "procedure": IntDescrChecker},
+    "get-running-configuration": {"description": "Retrieves the running configuration from devices",
+                                  "procedure": BackupRunningConfiguration}
 }
 
 
