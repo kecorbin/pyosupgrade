@@ -1,4 +1,5 @@
 import datetime
+import datetime
 import time
 import requests
 from netmiko.ssh_exception import NetMikoTimeoutException
@@ -25,6 +26,24 @@ class ASR1000Upgrade(IOSUpgrade):
                  (self.custom_verification_2_name, self.custom_verification_2_status, self.custom_verification_2_status_log_url)
                  ]
         return steps
+
+    @property
+    def verification_commands(self):
+        commands = [
+            'show version',
+            'show bootvar',
+            'show inventory',
+            'show environment',
+            'show module',
+            'show run',
+            'show cdp neighbors',
+            'show int stats',
+            'show ip arp',
+            'show spanning-tree',
+            'show buffers'
+        ]
+        return commands
+
 
     def identify_platform(self):
         """
@@ -138,6 +157,16 @@ class ASR1000Upgrade(IOSUpgrade):
             self.status = "FAILED - COULD NOT CONNECT TO DEVICE"
             exit()
 
+        # Capture pre verification commands
+        if self.verification_commands:
+            pre_output = generic.capture_commands(connected, self.verification_commands)
+            if pre_output:
+                self.pre_verification_commands_status = "success"
+                self.pre_verification_commands_url = self.logbin(pre_output, description="upgrade pre-verification commands for {}".format(self.device))
+            else:
+                self.status = "FAILED - COULD NOT GATHER VERIFICATION COMMANDS"
+                exit(1)
+
         # Backup Running Config
         self.status = "BACKING UP RUNNING CONFIG"
         output = connected.show('show running-config')
@@ -238,6 +267,18 @@ class ASR1000Upgrade(IOSUpgrade):
 
         custom_1 = self.custom_verification_1()
         custom_2 = self.custom_verification_2()
+
+        # Capture post verification commands
+        if self.verification_commands:
+            post_output = generic.capture_commands(online, self.verification_commands)
+            if post_output:
+                self.post_verification_commands_status = "success"
+                descr = "post upgrade verification commands for {}".format(self.device)
+                self.post_verification_commands_url = self.logbin(post_output,
+                                                                  description=descr)
+            else:
+                self.status = "FAILED - COULD NOT GATHER POST VERIFICATION COMMANDS"
+                exit(1)
 
         if all([online, upgraded, custom_1, custom_2]):
             self.status = "UPGRADE SUCCESSFUL"
