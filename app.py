@@ -11,6 +11,7 @@ from pyosupgrade.procedures.cat4500 import Catalyst4500Upgrade
 from pyosupgrade.procedures.asr1000 import ASR1000Upgrade
 from pyosupgrade.procedures.csr1000 import CSR1000Upgrade
 from pyosupgrade.procedures.healthchecks import IntDescrChecker
+from pyosupgrade.procedures.configuration import BackupRunningConfiguration
 from pyosupgrade.views.logbin import Log, viewer
 from pyosupgrade.views.diffview import diff
 # Since this is not a python package we need to do some work to treat it like

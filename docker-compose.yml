@@ -20,9 +20,7 @@ services:
   web:
     restart: always
     build: .
-
-    command: "pyagent run -c ./appdynamics.cfg -- gunicorn -w 8 -b '0.0.0.0:5000' wsgi:app"
-#    command: "python app.py"
+    command: "python app.py"
     links:
       - redis:redis
       - mongo:mongo
@@ -61,7 +59,7 @@ services:
 
   worker:
     build: .
-    command: "celery -E --autoscale=40,3 --loglevel=DEBUG -A tasks.celery worker"
+    command: "celery -E --loglevel=DEBUG -A tasks.celery worker"
     restart: always
 
     links:
@@ -76,39 +74,6 @@ services:
       REGIONS_API: http://web:5000/api/regions
       IMAGES_API: http://web:5000/api/images
 
-#  worker2:
-#    build: .
-#    command: "celery -E --autoscale=40,3 --loglevel=DEBUG -A tasks.celery worker"
-#    restart: always
-#
-#    links:
-#      - mongo:mongo
-#      - redis:redis
-#    depends_on:
-#      - redis
-#      - mongo
-#    environment:
-#      CALLBACK_API: http://web:5000/api/upgrade
-#      LOGBIN_API: http://web:5000/api/logbin
-#      REGIONS_API: http://web:5000/api/regions
-#      IMAGES_API: http://web:5000/api/images
-#
-#  worker3:
-#    build: .
-#    command: "celery -E --autoscale=40,3 --loglevel=DEBUG -A tasks.celery worker"
-#    restart: always
-#
-#    links:
-#      - mongo:mongo
-#      - redis:redis
-#    depends_on:
-#      - redis
-#      - mongo
-#    environment:
-#      CALLBACK_API: http://web:5000/api/upgrade
-#      LOGBIN_API: http://web:5000/api/logbin
-#      REGIONS_API: http://web:5000/api/regions
-#      IMAGES_API: http://web:5000/api/images
 
   redis:
     image: redis:latest
