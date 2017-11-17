@@ -11,6 +11,21 @@ class CSR1000Upgrade(IOSUpgrade):
 
     reload_command = "reload"
 
+    @property
+    def steps(self):
+        steps = [('Code Transfer', self.code_upload_status, self.code_upload_log_url),
+                ('Verify Supervisor Redundancy', self.sup_redundancy_status, self.sup_redundancy_log_url),
+                ('Synchronize Code to Standby Supervisor', self.copy_code_to_slave_status, self.copy_code_to_slave_log_url),
+                ('Backup Running Config', self.backup_running_config_status, self.backup_running_config_log_url),
+                ('Set Boot Variable', self.set_bootvar_status, self.set_bootvar_status_log_url),
+                ('Verify Boot Variable', self.verify_bootvar_status, self.verify_bootvar_status_log_url),
+                ('Reload Device', self.reload_status, self.reload_status_log_url),
+                ('Verify Upgrade', self.verify_upgrade, self.verify_upgrade_log_url, self.verify_upgrade_log_url),
+                (self.custom_verification_1_name, self.custom_verification_1_status, self.custom_verification_1_status_log_url),
+                (self.custom_verification_2_name, self.custom_verification_2_status, self.custom_verification_2_status_log_url)
+              ]
+        return steps
+
     def identify_platform(self):
         """
         get's supervisor information from an ASR1000 this is used to
@@ -71,9 +86,7 @@ class CSR1000Upgrade(IOSUpgrade):
         print("Initatiating file transfer...")
         url = "tftp://{}/{}".format(regional_fs, image)
         ios_transfer, ios_transfer_output = generic.copy_remote_image(device, url)
-
-
-        logbin_url = self.logbin(ios_transfer_output)
+        logbin_url = self.logbin(ios_transfer_output, description="file transfer log for {}".format(self.device))
         self.code_upload_log_url = logbin_url
         if ios_transfer:
             print('File Transfer Suceeded')
@@ -121,7 +134,7 @@ class CSR1000Upgrade(IOSUpgrade):
         output = connected.show('show running-config')
         if output:
             self.backup_running_config_status = "success"
-            logbin_url = self.logbin(output)
+            logbin_url = self.logbin(output, description="backup running config of {}".format(self.device))
             self.backup_running_config_log_url = logbin_url
         else:
             self.status = "FAILED - COULD NOT BACKUP RUNNING CONFIG"
@@ -132,7 +145,7 @@ class CSR1000Upgrade(IOSUpgrade):
         result = generic.set_bootvar(connected, image=self.target_image)
         bootvar_result, bootvar_output = result
         if bootvar_output:
-            logbin_url = self.logbin(bootvar_output)
+            logbin_url = self.logbin(bootvar_output, description="setting boot variable on {}".format(self.device))
             self.set_bootvar_status_log_url = logbin_url
             self.set_bootvar_status = "success"
         else:
@@ -145,7 +158,8 @@ class CSR1000Upgrade(IOSUpgrade):
         valid_bootvar, valid_bootvar_output = result
 
         if valid_bootvar:
-            logbin_url = self.logbin(valid_bootvar_output)
+            description = "verifying boot variable for {}".format(self.device)
+            logbin_url = self.logbin(valid_bootvar_output, description=description)
             self.verify_bootvar_status_log_url = logbin_url
             self.set_bootvar_status = "success"
             self.verify_bootvar_status = "success"
@@ -158,7 +172,7 @@ class CSR1000Upgrade(IOSUpgrade):
         self.status = "RELOADING"
         reload_output = generic.reload_device(connected,
                                               command=self.reload_command)
-        logbin_url = self.logbin("{}".format(reload_output))
+        logbin_url = self.logbin("{}".format(reload_output), description="reload output for {}".format(self.device))
         self.reload_status_log_url = logbin_url
 
         reloaded = True
@@ -210,7 +224,7 @@ class CSR1000Upgrade(IOSUpgrade):
 
         # ship the log file and move on
         print image_output
-        logbin_url = self.logbin(image_output)
+        logbin_url = self.logbin(image_output, description="upgrade verification for {}".format(self.device))
         self.verify_upgrade_log_url = logbin_url
 
         custom_1 = self.custom_verification_1()

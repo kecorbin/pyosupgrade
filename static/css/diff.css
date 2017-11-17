@@ -1,0 +1,49 @@
+
+h1 {
+    text-align: center;
+}
+
+table {
+    font-family:monospace, "Courier New", Courier;
+    border-collapse: collapse;
+    border: 1px solid gray;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 20px;
+    background-color: black;
+    color: ghostwhite;
+}
+/*table th {*/
+    /*background-color: #e0e0e0;*/
+    /*border: 1px solid gray;*/
+/*}*/
+table td {
+    font-size: 10px;
+}
+/* For diff table */
+.diff_header {
+    background-color: #e0e0e0;
+    display: none;
+}
+
+td.diff_header {
+    text-align:right;
+}
+.diff_next {
+    background-color:#c0c0c0;
+}
+
+.diff_add {
+    background-color: greenyellow;
+    color: black;
+}
+
+.diff_chg {
+    background-color: #ffff77;
+    color: black;
+}
+.diff_sub {
+    background-color:#ffaaaa;
+    color: black;
+}

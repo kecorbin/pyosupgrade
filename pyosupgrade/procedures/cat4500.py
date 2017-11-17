@@ -7,6 +7,39 @@ class Catalyst4500Upgrade(IOSUpgrade):
     check_sup_redundancy = True
     reload_command = "redundancy reload shelf"
 
+    @property
+    def steps(self):
+        steps = [('Code Transfer', self.code_upload_status, self.code_upload_log_url),
+                ('Verify Supervisor Redundancy', self.sup_redundancy_status, self.sup_redundancy_log_url),
+                ('Synchronize Code to Standby Supervisor', self.copy_code_to_slave_status, self.copy_code_to_slave_log_url),
+                ('Backup Running Config', self.backup_running_config_status, self.backup_running_config_log_url),
+                ('Set Boot Variable', self.set_bootvar_status, self.set_bootvar_status_log_url),
+                ('Verify Boot Variable', self.verify_bootvar_status, self.verify_bootvar_status_log_url),
+                ('Reload Device', self.reload_status, self.reload_status_log_url),
+                ('Verify Upgrade', self.verify_upgrade, self.verify_upgrade_log_url, self.verify_upgrade_log_url),
+                (self.custom_verification_1_name, self.custom_verification_1_status, self.custom_verification_1_status_log_url),
+                (self.custom_verification_2_name, self.custom_verification_2_status, self.custom_verification_2_status_log_url)
+              ]
+        return steps
+
+    @property
+    def verification_commands(self):
+        commands = [
+            'show version',
+            'show bootvar',
+            'show redundancy',
+            'show inventory',
+            'show environment',
+            'show module',
+            'show run',
+            'show cdp neighbors',
+            'show int status err-disabled',
+            'show ip arp',
+            'show spanning-tree',
+            'show mac address-table'
+        ]
+        return commands
+
     def register_custom_tasks(self):
         self.custom_verification_1_name = "Verify FPGA Upgrades"
         self.custom_verification_2_name = "Verify Supervisor TX Queues"
@@ -123,7 +156,7 @@ class Catalyst4500Upgrade(IOSUpgrade):
         print("Verify FPGA")
         self.status = "VERIFYING FPGA UPGRADE"
         fpga_status, fpga_output = self._verify_fpga(device)
-        logbin_url = self.logbin(fpga_output)
+        logbin_url = self.logbin(fpga_output, description="fpga upgrade verification for {}".format(self.device))
         self.custom_verification_1_status_log_url = logbin_url
 
         if fpga_status:
@@ -138,7 +171,8 @@ class Catalyst4500Upgrade(IOSUpgrade):
         self.custom_verification_2_name = "Verify Supervisor TX Queues"
         self.status = "verify tx queues"
         verified, output = self._ensure_queues_are_enabled()
-        self.custom_verification_2_status_log_url = self.logbin(output)
+        description="sup tx queue verification for {}".format(self.device)
+        self.custom_verification_2_status_log_url = self.logbin(output, description=description)
         if verified:
             self.custom_verification_2_status = "success"
             return True

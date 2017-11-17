@@ -55,7 +55,7 @@ class IOSUpgrade(BaseUpgrade):
         print("Initatiating file transfer...")
         url = "tftp://{}/{}".format(regional_fs, image)
         transfer, transfer_output = generic.copy_remote_image(device, url)
-        logbin_url = self.logbin(transfer_output)
+        logbin_url = self.logbin(transfer_output, description="file transfer log for {}".format(self.device))
         self.code_upload_log_url = logbin_url
         if transfer:
             print('File Transfer Suceeded')
@@ -69,7 +69,7 @@ class IOSUpgrade(BaseUpgrade):
         self.status = "VERIFY_SUP_REDUNDANCY"
         result = generic.verify_sup_redundancy(device)
         sup_redundancy, sup_redundancy_output = result
-        self.sup_redundancy_log_url = self.logbin(sup_redundancy_output)
+        self.sup_redundancy_log_url = self.logbin(sup_redundancy_output, description="sup redundancy verification for {}".format(self.device))
         if sup_redundancy:
             print('Redundant Supervisors detected\n')
             self.sup_redundancy_status = "success"
@@ -77,7 +77,7 @@ class IOSUpgrade(BaseUpgrade):
             self.status = "SYNCHRONIZING IMAGE"
             result = generic.copy_image_to_slave(device, image)
             slave_copy, slave_copy_output = result
-            self.copy_code_to_slave_log_url = self.logbin(slave_copy_output)
+            self.copy_code_to_slave_log_url = self.logbin(slave_copy_output, description="file transfer log for {}".format(self.device))
             if slave_copy:
                 print('File Transfer Suceeded')
                 self.copy_code_to_slave_status = "success"
@@ -120,12 +120,22 @@ class IOSUpgrade(BaseUpgrade):
             self.status = "FAILED - COULD NOT CONNECT TO DEVICE"
             exit()
 
+        # Capture pre verification commands
+        if self.verification_commands:
+            pre_output = generic.capture_commands(connected, self.verification_commands)
+            if pre_output:
+                self.pre_verification_commands_status = "success"
+                self.pre_verification_commands_url = self.logbin(pre_output, description="upgrade pre-verification commands for {}".format(self.device))
+            else:
+                self.status = "FAILED - COULD NOT GATHER VERIFICATION COMMANDS"
+                exit(1)
+
         # Backup Running Config
         self.status = "BACKING UP RUNNING CONFIG"
         output = connected.show('show running-config')
         if output:
             self.backup_running_config_status = "success"
-            logbin_url = self.logbin(output)
+            logbin_url = self.logbin(output, description="backup of running-config for {}".format(self.device))
             self.backup_running_config_log_url = logbin_url
         else:
             self.status = "FAILED - COULD NOT BACKUP RUNNING CONFIG"
@@ -136,7 +146,7 @@ class IOSUpgrade(BaseUpgrade):
         result = generic.set_bootvar(connected, image=self.target_image)
         bootvar_result, bootvar_output = result
         if bootvar_output:
-            logbin_url = self.logbin(bootvar_output)
+            logbin_url = self.logbin(bootvar_output, description="setting bootvar for {}".format(self.device))
             self.set_bootvar_status_log_url = logbin_url
             self.set_bootvar_status = "success"
         else:
@@ -149,7 +159,7 @@ class IOSUpgrade(BaseUpgrade):
         valid_bootvar, valid_bootvar_output = result
 
         if valid_bootvar:
-            logbin_url = self.logbin(valid_bootvar_output)
+            logbin_url = self.logbin(valid_bootvar_output, description="verifying bootvar for {}".format(self.device))
             self.verify_bootvar_status_log_url = logbin_url
             self.set_bootvar_status = "success"
             self.verify_bootvar_status = "success"
@@ -162,7 +172,7 @@ class IOSUpgrade(BaseUpgrade):
         self.status = "RELOADING"
         reload_output = generic.reload_device(connected,
                                               command=self.reload_command)
-        logbin_url = self.logbin("{}".format(reload_output))
+        logbin_url = self.logbin("{}".format(reload_output), description="reloading ouput for {}".format(self.device))
         self.reload_status_log_url = logbin_url
 
         reloaded = True
@@ -214,11 +224,24 @@ class IOSUpgrade(BaseUpgrade):
 
         # ship the log file and move on
         print image_output
-        logbin_url = self.logbin(image_output)
+        logbin_url = self.logbin(image_output, description="upgrade verification for {}".format(self.device))
         self.verify_upgrade_log_url = logbin_url
 
         custom_1 = self.custom_verification_1()
         custom_2 = self.custom_verification_2()
+
+        # Capture post verification commands
+        if self.verification_commands:
+            post_output = generic.capture_commands(online, self.verification_commands)
+            if post_output:
+                self.post_verification_commands_status = "success"
+                descr = "post upgrade verification commands for {}".format(self.device)
+                self.post_verification_commands_url = self.logbin(post_output,
+                                                                  description=descr)
+            else:
+                self.status = "FAILED - COULD NOT GATHER POST VERIFICATION COMMANDS"
+                exit(1)
+
 
         if all([online, upgraded, custom_1, custom_2]):
             self.status = "UPGRADE SUCCESSFUL"

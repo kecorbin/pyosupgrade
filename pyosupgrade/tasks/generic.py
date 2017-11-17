@@ -6,6 +6,28 @@ import sys
 import re
 
 
+def capture_commands(device, commands):
+    """
+    Executes a list of commands on a device
+
+    This adds some context information (ip/command) as well as basic XML tags used for sorting results later
+
+    :param device:  pyntc
+    :param commands: list of commands to execute on each device
+    :return: string output from commands w/ basic XML tags for sorting
+    """
+    device.open()
+    output = "<snapshot>\n"
+    for command in commands:
+        output += '<command cmd="{}">\n'.format(command.strip())
+        output += "\n{}\n".format(command)
+        output += "{}\n".format('-' * 80)
+        output += device.native.send_command(command)
+        output += "\n</command>\n"
+    output += "\n</snapshot>\n"
+    return output
+
+
 def verify_sup_redundancy(device):
     """
     Returns True if supervisors are in SSO mode
@@ -18,29 +40,44 @@ def verify_sup_redundancy(device):
 
 
 def copy_remote_image(device, url, file_system="bootflash:"):
+    """
+
+    :param device: pyntc device
+    :param url: source of image
+    :param file_system: destination file system
+    :return: bool, str tuple containing whether the operation was successful and any output
+    """
     device.open()
     image = url.split('/')[-1]
-    print "Setting file prompt to quiet"
-    device.native.send_config_set(["file prompt quiet"])
-    print "Copying image from {} to {}{}".format(url, file_system, image)
-    command = 'copy {} {}{}'.format(url, file_system, image)
-    output = device.native.send_command_expect(command, delay_factor=30)
-    print output
-    try:
-        if 'bytes copied' in output:
-            stats = [l for l in output.split('\n') if 'bytes copied' in l][0]
-            print stats
-            print "Restoring file prompt to alert"
-            device.native.send_config_set(["file prompt alert"])
-            return True, output
+    # checking where the image already exists.  should be rare
+    ls = device.native.send_command('dir {}'.format(file_system))
+    if image in ls:
+        msg = "Image already present verifying hash\n"
+        msg += "-----------------------\n"
+        valid, verify_output = verify_image(device, "{}{}".format(file_system, image))
+        msg += verify_output
+        if valid:
+            return True, msg
         else:
-            print "Restoring file prompt to alert"
-            device.native.send_config_set(["file prompt alert"])
+            return False, msg
+    else:
+        # proceed with upgrade
+        print "Setting file prompt to quiet"
+        # Disables's confirmation for dest filename, and automatically verifies MD5
+        device.native.send_config_set(["file prompt quiet", "file verify auto"])
+        print "Copying image from {} to {}{}".format(url, file_system, image)
+        command = 'copy {} {}{}'.format(url, file_system, image)
+        output = device.native.send_command_expect(command, delay_factor=30)
+        # look for all the following keywords in the output
+        expected_patterns = ["bytes copied", "signature successfully verified"]
+        try:
+            if all(x in output for x in expected_patterns):
+                print "Image copied and successfully verified"
+                return True, output
+            else:
+                return False, output
+        except IOError:
             return False, output
-    except IOError:
-        print "Restoring file prompt to alert"
-        device.native.send_config_set(["file prompt alert"])
-        return False, output
 
 
 def copy_image_to_slave(device,
@@ -57,40 +94,52 @@ def copy_image_to_slave(device,
     """
     print "Synchronizing image to secondary supervisor"
     output = ""
-    try:
-        device.open()
-        # eventually we should just keep this enabled
-        device.native.send_config_set(["file prompt quiet"])
+    device.open()
+
+    # checking where the image already exists.  should be rare
+    ls = device.native.send_command('dir {}'.format(dst_fs))
+    if image in ls:
+        msg = "Image already present verifying hash\n"
+        msg += "-----------------------\n"
+        valid, verify_output = verify_image(device, "{}{}".format(dst_fs, image))
+        msg += verify_output
+        if valid:
+            return True, msg
+        else:
+            return False, msg
+    else:
+        # image is not present, proceed with copy
+        device.native.send_config_set(["file prompt quiet", "file verify auto"])
         command = 'copy {}{} {}{}'.format(source_fs, image,
                                           dst_fs, image)
         output = device.native.send_command_expect(command, delay_factor=30)
-        return True, output
-    except:
-        return False, output
+        expected_patterns = ["bytes copied", "signature successfully verified"]
+        # checks that all expected_patterns are present in the output
+        if all(x in output for x in expected_patterns):
+            return True, output
+        else:
+            return False, output
 
 
-def verify_image(device, image, md5hash=None):
+
+def verify_image(device, image):
     """
     Perform md5 verfication of *image* on device using a provided md5hash
     Returns True if md5 hash is valid
 
     :param device: ntc_device
-    :param image: str image name
+    :param image: str image name including filesystem
     :param md5hash: str expected md5 hash
-    :return: bool
+    :return: bool, str tuple of True if verification is successful, output of verification
     """
     print "Calulating md5 hash of remote file...."
     device.open()
-    output = device.native.send_command_expect('verify /md5 {}'.format(image),
-                                               delay_factor=5)
-    match = md5hash.lower() in output
-
-    if match:
-        print output
+    output = device.native.send_command_expect('verify {}'.format(image),
+                                               delay_factor=10)
+    if "signature successfully verified" in output:
+        return True, output
     else:
-        print "Failed to verify image"
-    return match
-
+        return False, output
 
 def ping(host):
     """
@@ -126,7 +175,7 @@ def set_bootvar(device, image, file_system="bootflash:"):
     output += bootvar_output
     existing_bootstmts = bootvar_output.split('\n')
     print "existing bootstatements = {}".format(existing_bootstmts)
-    conf_set = list()
+    conf_set = ['file prompt quiet']
     if len(existing_bootstmts) >= 1:
 
         for bootstmt in existing_bootstmts:
@@ -143,7 +192,7 @@ def set_bootvar(device, image, file_system="bootflash:"):
         output += "show running | inc boot system\n"
         output += verify_bootvar_output + '\n'
         output += "copy running-config startup-config\n"
-        output += device.show('copy running-config startup-config')
+        output += device.native.send_command_expect('copy running-config startup-config\n\n', delay_factor=5)
         # in case we get a [startup-config]
         output += device.show('\n')
 
@@ -209,11 +258,15 @@ def wait_for_reboot(ip, repeat=500, delay=60):
     try:
         # in case this gets called to soon e.g a device responds to ping
         # for a bit we'll sleep for `delay`
+        print "Waiting {} seconds for device to go down completely".format(delay)
         time.sleep(delay)
         # then start testing
         for i in range(repeat):
+            if repeat % 60 == 0:
+                print("Waiting {} more minutes for host to come online".format(delay / 60))
             ping_success = ping(ip)
             if ping_success:
+                print ("Host is responding to pings again!")
                 return True
         # after repeat number of pings we say it failed
         return False

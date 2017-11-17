@@ -1,4 +1,5 @@
 import datetime
+import datetime
 import time
 import requests
 from netmiko.ssh_exception import NetMikoTimeoutException
@@ -10,6 +11,39 @@ from pyntc import ntc_device as NTC
 class ASR1000Upgrade(IOSUpgrade):
 
     reload_command = "reload"
+
+    @property
+    def steps(self):
+        steps = [('Code Transfer', self.code_upload_status, self.code_upload_log_url),
+                 ('Verify Supervisor Redundancy', self.sup_redundancy_status, self.sup_redundancy_log_url),
+                 ('Synchronize Code to Standby Supervisor', self.copy_code_to_slave_status, self.copy_code_to_slave_log_url),
+                 ('Backup Running Config', self.backup_running_config_status, self.backup_running_config_log_url),
+                 ('Set Boot Variable', self.set_bootvar_status, self.set_bootvar_status_log_url),
+                 ('Verify Boot Variable', self.verify_bootvar_status, self.verify_bootvar_status_log_url),
+                 ('Reload Device', self.reload_status, self.reload_status_log_url),
+                 ('Verify Upgrade', self.verify_upgrade, self.verify_upgrade_log_url, self.verify_upgrade_log_url),
+                 (self.custom_verification_1_name, self.custom_verification_1_status, self.custom_verification_1_status_log_url),
+                 (self.custom_verification_2_name, self.custom_verification_2_status, self.custom_verification_2_status_log_url)
+                 ]
+        return steps
+
+    @property
+    def verification_commands(self):
+        commands = [
+            'show version',
+            'show bootvar',
+            'show inventory',
+            'show environment',
+            'show module',
+            'show run',
+            'show cdp neighbors',
+            'show int stats',
+            'show ip arp',
+            'show spanning-tree',
+            'show buffers'
+        ]
+        return commands
+
 
     def identify_platform(self):
         """
@@ -80,7 +114,7 @@ class ASR1000Upgrade(IOSUpgrade):
         rommon_url = "tftp://{}/{}".format(regional_fs, rommon)
         rommon_transfer, rommon_transfer_output = generic.copy_remote_image(device, rommon_url)
         transfer_output = "{}\n\n{}".format(ios_transfer_output, rommon_transfer_output)
-        logbin_url = self.logbin(transfer_output)
+        logbin_url = self.logbin(transfer_output, description="image transfer for {}".format(self.device))
         self.code_upload_log_url = logbin_url
         if ios_transfer and rommon_transfer:
             print('File Transfer Suceeded')
@@ -123,12 +157,22 @@ class ASR1000Upgrade(IOSUpgrade):
             self.status = "FAILED - COULD NOT CONNECT TO DEVICE"
             exit()
 
+        # Capture pre verification commands
+        if self.verification_commands:
+            pre_output = generic.capture_commands(connected, self.verification_commands)
+            if pre_output:
+                self.pre_verification_commands_status = "success"
+                self.pre_verification_commands_url = self.logbin(pre_output, description="upgrade pre-verification commands for {}".format(self.device))
+            else:
+                self.status = "FAILED - COULD NOT GATHER VERIFICATION COMMANDS"
+                exit(1)
+
         # Backup Running Config
         self.status = "BACKING UP RUNNING CONFIG"
         output = connected.show('show running-config')
         if output:
             self.backup_running_config_status = "success"
-            logbin_url = self.logbin(output)
+            logbin_url = self.logbin(output, description="backup running config for {}".format(self.device))
             self.backup_running_config_log_url = logbin_url
         else:
             self.status = "FAILED - COULD NOT BACKUP RUNNING CONFIG"
@@ -139,7 +183,7 @@ class ASR1000Upgrade(IOSUpgrade):
         result = generic.set_bootvar(connected, image=self.target_image)
         bootvar_result, bootvar_output = result
         if bootvar_output:
-            logbin_url = self.logbin(bootvar_output)
+            logbin_url = self.logbin(bootvar_output, description="setting boot variable for {}".format(self.device))
             self.set_bootvar_status_log_url = logbin_url
             self.set_bootvar_status = "success"
         else:
@@ -152,7 +196,8 @@ class ASR1000Upgrade(IOSUpgrade):
         valid_bootvar, valid_bootvar_output = result
 
         if valid_bootvar:
-            logbin_url = self.logbin(valid_bootvar_output)
+            logbin_url = self.logbin(valid_bootvar_output,
+                                     description="verify boot variable for {}".format(self.device))
             self.verify_bootvar_status_log_url = logbin_url
             self.set_bootvar_status = "success"
             self.verify_bootvar_status = "success"
@@ -165,7 +210,7 @@ class ASR1000Upgrade(IOSUpgrade):
         self.status = "RELOADING"
         reload_output = generic.reload_device(connected,
                                               command=self.reload_command)
-        logbin_url = self.logbin("{}".format(reload_output))
+        logbin_url = self.logbin("{}".format(reload_output), description="reload output for {}".format(self.device))
         self.reload_status_log_url = logbin_url
 
         reloaded = True
@@ -217,11 +262,23 @@ class ASR1000Upgrade(IOSUpgrade):
 
         # ship the log file and move on
         print image_output
-        logbin_url = self.logbin(image_output)
+        logbin_url = self.logbin(image_output, description="verify upgrade for {}".format(self.device))
         self.verify_upgrade_log_url = logbin_url
 
         custom_1 = self.custom_verification_1()
         custom_2 = self.custom_verification_2()
+
+        # Capture post verification commands
+        if self.verification_commands:
+            post_output = generic.capture_commands(online, self.verification_commands)
+            if post_output:
+                self.post_verification_commands_status = "success"
+                descr = "post upgrade verification commands for {}".format(self.device)
+                self.post_verification_commands_url = self.logbin(post_output,
+                                                                  description=descr)
+            else:
+                self.status = "FAILED - COULD NOT GATHER POST VERIFICATION COMMANDS"
+                exit(1)
 
         if all([online, upgraded, custom_1, custom_2]):
             self.status = "UPGRADE SUCCESSFUL"

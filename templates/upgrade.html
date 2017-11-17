@@ -1,6 +1,8 @@
 {% extends "layout.html" %}
-{% from "progress_bars.html" import progress_bar %}
+{% set active_page = "jobview" %}
+{% include "modals.html" %}
 {% block content %}
+
 <div class="row">
   <div class="col-md-12 text-center">
    <button onclick="showmodal();" class="btn btn-default btn-lg">Start Staging Code!</button>
@@ -9,7 +11,7 @@
 
 <div class="container-fluid">
   <div class="row">
-    <table class="table table-striped table-hover">
+    <table id="upgrades" class="table table-striped table-hover">
       <thead>
         <tr>
           <th>Job ID</th>
@@ -20,23 +22,22 @@
           <th>Progress</th>
         </tr>
       </thead>
-      <tbody>
-        {% for job in jobs %}
-
-            <tr class='clickable-row' data-href='/upgrade/{{ job.id }}'>
-              <td><a href="{{ url_for('jobview-detail', id=job.id) }}">{{ job.id }}</a></td>
-              <td>{{ job.mop }}</td>
-              <td>{{ job.username }}</td>
-              <td>{{ job.device }}</td>
-              <td>{{ job.status }}</td>
-              <td>{{ progress_bar(job) }}</td>
-
-            </tr>
-
-        {% endfor %}
-      </tbody>
+{#      <tbody>#}
+{#        {% for job in jobs %}#}
+{#            <tr class='clickable-row' data-href='/upgrade/{{ job._id }}'>#}
+{#              <td><a href="{{ url_for('jobview-detail', id=job._id, _external=True) }}">{{ job._id }}</a></td>#}
+{#              <td>{{ job.mop }}</td>#}
+{#              <td>{{ job.username }}</td>#}
+{#              <td>{{ job.device }}</td>#}
+{#              <td>{{ job.status }}</td>#}
+{#              <td>{{ progress_bar(job) }}</td>#}
+{#            </tr>#}
+{#        {% endfor %}#}
+{#      </tbody>#}
     </table>
 
   </div>
 </div>
+<script src="/static/js/upgrade-table.js"></script>
 {% endblock %}
+

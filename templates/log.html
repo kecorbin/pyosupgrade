@@ -1,0 +1,42 @@
+{% extends "layout.html" %}
+{% set active_page = "viewer" %}
+{% block extra_css %}
+    <link rel="stylesheet" href="/static/css/log.css">
+{% endblock %}
+{% block extra_js %}
+<script src="/static/js/log.js"></script>
+{% endblock %}
+{% block content %}
+
+{% include "log-modal.html" %}
+<div class="container">
+
+    <h1>Here's some recent logs</h1>
+     <div class="row">
+        <table class="table table-bordered">
+        <thead>
+          <tr>
+            <th>logid</th>
+            <th>created</th>
+            <th>description</th>
+            <th>actions</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for log in logs %}
+          <tr>
+            <td>{{ log['id'] }}</td>
+            <td>{{ log['created'] }}</td>
+            <td>{{ log['description'] }}</td>
+            <td>
+              <button type="button" class="btn-primary bmd-modalButton" data-toggle="modal" data-bmdSrc="{{ url_for('embedded-viewer', logid=log.id) }}" data-bmdWidth="500" data-bmdHeight="281" data-target="#myModal">View</button>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+</div>
+
+{% endblock %}
+
