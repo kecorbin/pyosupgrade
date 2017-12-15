@@ -59,6 +59,8 @@ class ASR1000Upgrade(IOSUpgrade):
         # TODO verify this is the appropriate RP1 output
         elif "ASR1000-RP1" in output:
             return "ASR1000-RP1", output
+        elif "ASR1002-RP1" in output:
+            return "ASR1000-RP1", output
         else:
             return "UNKNOWN", output
 
