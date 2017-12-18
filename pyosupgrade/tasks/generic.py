@@ -39,7 +39,7 @@ def verify_sup_redundancy(device):
     return "Standby hot" in output, output
 
 
-def copy_remote_image(device, url, file_system="bootflash:"):
+def copy_remote_image(device, url, file_system="bootflash:", expect1="bytes copied", expect2="signature successfully verified"):
     """
 
     :param device: pyntc device
@@ -69,7 +69,7 @@ def copy_remote_image(device, url, file_system="bootflash:"):
         command = 'copy {} {}{}'.format(url, file_system, image)
         output = device.native.send_command_expect(command, delay_factor=30)
         # look for all the following keywords in the output
-        expected_patterns = ["bytes copied", "signature successfully verified"]
+        expected_patterns = [expect1, expect2]
         try:
             if all(x in output for x in expected_patterns):
                 print "Image copied and successfully verified"
@@ -137,6 +137,9 @@ def verify_image(device, image):
     output = device.native.send_command_expect('verify {}'.format(image),
                                                delay_factor=10)
     if "signature successfully verified" in output:
+        return True, output
+    # common ASR1K pattern
+    elif "verification successful" in output:
         return True, output
     else:
         return False, output
