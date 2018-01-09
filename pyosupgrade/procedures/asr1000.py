@@ -59,6 +59,8 @@ class ASR1000Upgrade(IOSUpgrade):
         # TODO verify this is the appropriate RP1 output
         elif "ASR1000-RP1" in output:
             return "ASR1000-RP1", output
+        elif "ASR1002-RP1" in output:
+            return "ASR1000-RP1", output
         else:
             return "UNKNOWN", output
 
@@ -106,7 +108,7 @@ class ASR1000Upgrade(IOSUpgrade):
         self.status = "TRANSFERRING IOS"
         print("Initatiating file transfer...")
         url = "tftp://{}/{}".format(regional_fs, image)
-        ios_transfer, ios_transfer_output = generic.copy_remote_image(device, url)
+        ios_transfer, ios_transfer_output = generic.copy_remote_image(device, url, expect1="bytes copied", expect2="Signature Verified")
         rommon = images[sup_type]['rommon']
 
         self.status = "TRANSFERRING ROMMON"

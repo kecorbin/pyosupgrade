@@ -11,3 +11,5 @@ AS:
   regional_fs: 10.122.1.10
 KC:
   regional_fs: 192.168.51.1
+BR:
+  regional_fs: 10.87.2.10
