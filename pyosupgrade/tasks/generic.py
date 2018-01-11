@@ -204,6 +204,43 @@ def set_bootvar(device, image, file_system="bootflash:"):
     else:
         return False, output
 
+def upgrade_rommon(device, rommon, file_system="bootflash:"):
+    """
+    Removes existing boot statements on *device* and adds one for *image*
+    also saves the configuration
+
+    :param device: ntc_device object
+    :param rommon: str rommon filename
+    :param file_system: str filesystem name, defaults to 'bootflash:'
+    :returns: None
+    """
+    device.open()
+
+    output = ""
+
+    rommon_output = device.show('show platform | be Firmware')
+    output += rommon_output
+
+    # Determine slots requiring ROMMON upgrade
+    excluded_lines = ['Slot', '-----']
+    lines = output.rstrip().split('\n')
+    lines = [l for l in lines if not any(s in l for s in excluded_lines)]
+    expected_rommon_upgrades = len(lines)
+
+    # Upgrade ROMMON
+    print ("Updating ROMMON on {} modules.".format(expected_rommon_upgrades))
+    command = 'upgrade rom-monitor filename {}{} all'.format(file_system, rommon)
+    output += device.native.send_command_expect(command, delay_factor=10)
+
+    # Verify ROMMON
+    num_upgraded_modules = output.count("ROMMON upgrade complete")
+    if num_upgraded_modules == expected_rommon_upgrades:
+        print("ROMMON upgrade complete")
+        return True, output
+    else:
+        print("ROMMON upgrade failed")
+        return False, output
+
 
 def reload_device(device, command='reload'):
     try:

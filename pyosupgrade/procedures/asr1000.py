@@ -20,6 +20,7 @@ class ASR1000Upgrade(IOSUpgrade):
                  ('Backup Running Config', self.backup_running_config_status, self.backup_running_config_log_url),
                  ('Set Boot Variable', self.set_bootvar_status, self.set_bootvar_status_log_url),
                  ('Verify Boot Variable', self.verify_bootvar_status, self.verify_bootvar_status_log_url),
+                 ('Upgrade ROMMON', self.set_rommon_status, self.set_rommon_log_url),
                  ('Reload Device', self.reload_status, self.reload_status_log_url),
                  ('Verify Upgrade', self.verify_upgrade, self.verify_upgrade_log_url, self.verify_upgrade_log_url),
                  (self.custom_verification_1_name, self.custom_verification_1_status, self.custom_verification_1_status_log_url),
@@ -31,16 +32,18 @@ class ASR1000Upgrade(IOSUpgrade):
     def verification_commands(self):
         commands = [
             'show version',
+            'show platform',
             'show bootvar',
             'show inventory',
-            'show environment',
-            'show module',
+            'show environment all',
             'show run',
             'show cdp neighbors',
-            'show int stats',
+            'show ip interface brief',
             'show ip arp',
-            'show spanning-tree',
-            'show buffers'
+            'show ip route',
+            'show processes cpu history',
+            'show processes memory sorted',
+            'show log'
         ]
         return commands
 
@@ -109,12 +112,17 @@ class ASR1000Upgrade(IOSUpgrade):
         print("Initatiating file transfer...")
         url = "tftp://{}/{}".format(regional_fs, image)
         ios_transfer, ios_transfer_output = generic.copy_remote_image(device, url, expect1="bytes copied", expect2="Signature Verified")
+
+        self.status = "LOCATING ROMMON"
         rommon = images[sup_type]['rommon']
+
+        print("Using image {}".format(rommon))
+        self.target_rommon = rommon
 
         self.status = "TRANSFERRING ROMMON"
         print("Initatiating file transfer...")
         rommon_url = "tftp://{}/{}".format(regional_fs, rommon)
-        rommon_transfer, rommon_transfer_output = generic.copy_remote_image(device, rommon_url)
+        rommon_transfer, rommon_transfer_output = generic.copy_remote_image(device, rommon_url, expect1="bytes copied", expect2="Signature Verified")
         transfer_output = "{}\n\n{}".format(ios_transfer_output, rommon_transfer_output)
         logbin_url = self.logbin(transfer_output, description="image transfer for {}".format(self.device))
         self.code_upload_log_url = logbin_url
@@ -208,6 +216,18 @@ class ASR1000Upgrade(IOSUpgrade):
             self.status = "FAILED - COULD NOT VERIFY BOOT VARIABLE"
             exit()
 
+        # Upgrade ROMMON
+        self.status = "UPGRADING ROMMON"
+        result = generic.upgrade_rommon(connected, rommon=self.target_rommon)
+        rommon_result, rommon_output = result
+        if rommon_output:
+            logbin_url = self.logbin(rommon_output, description="upgrading rommon for {}".format(self.device))
+            self.set_rommon_status_log_url = logbin_url
+            self.set_rommon_status = "success"
+        else:
+            self.status = "FAILED - COULD NOT UPGRADE ROMMON"
+            exit()
+
         # Reload
         self.status = "RELOADING"
         reload_output = generic.reload_device(connected,
@@ -244,14 +264,14 @@ class ASR1000Upgrade(IOSUpgrade):
                 healthy_module = len(lines)
 
                 # Wait for 20 more seconds if one or more modules not in 'ok' state
-                self.status = "BACK ONLINE, WAITING FOR LINECARDS"
+                self.status = "BACK ONLINE, VERIFYING LINECARDS"
                 print ("{} linecards are not in a 'ok' state.".format(healthy_module))
                 time.sleep(20)
                 healthy_module_delay += 1
                 if healthy_module_delay == 6:
                     self.status = "FAILED - COULD NOT VERIFY LINECARD STATE"
                     exit()
-            self.status = "BACK ONLINE"
+            self.status = "BACK ONLINE, LINECARDS ARE IN 'OK' STATE"
             self.reload_status = "success"
         else:
             self.status = "FAILED - DEVICE NOT REACHABLE"
@@ -275,12 +295,35 @@ class ASR1000Upgrade(IOSUpgrade):
         if upgraded:
             print("\nFound {} in command output".format(self.target_image))
             image_output += "it is"
-            self.verify_upgrade = "success"
+            image_upgraded = True
 
         else:
             print("\nCould not find {} in command output\n".format(self.target_image))
             image_output += "rur roh"
+            image_upgraded = False
+
+
+        rommon_output = online.show('show platform | be Firmware')
+        image_output += '\nDetecting ROMMON with `show platform | be Firmware`\n'
+        image_output += rommon_output
+
+        # Determine slots requiring ROMMON upgrade, excluding 16.3(2r)
+        excluded_lines = ['Slot', 'CPLD', '16.3(2r)', '-----']
+        lines = rommon_output.rstrip().split('\n')
+        lines = [l for l in lines if not any(s in l for s in excluded_lines)]
+        expected_rommon_upgrades = len(lines)
+
+        if expected_rommon_upgrades == 0:
+            print("\n16.3(2r) ROMMON seen for all modules")
+            rommon_upgraded = True
+        else:
+            print ("\n16.3(2r) ROMMON not seen for one or more modules\n")
+            rommon_upgraded = False
+
+        if image_upgraded == False or rommon_upgraded == False:
             self.verify_upgrade = "danger"
+        else:
+            self.verify_upgrade = "success"
 
         # ship the log file and move on
         print image_output
