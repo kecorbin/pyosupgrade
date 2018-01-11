@@ -113,9 +113,10 @@ def copy_image_to_slave(device,
         command = 'copy {}{} {}{}'.format(source_fs, image,
                                           dst_fs, image)
         output = device.native.send_command_expect(command, delay_factor=30)
-        expected_patterns = ["bytes copied", "signature successfully verified"]
+        expected_patterns = ["bytes copied", "Signature verified","signature successfully verified"]
+
         # checks that all expected_patterns are present in the output
-        if all(x in output for x in expected_patterns):
+        if output.count(expected_patterns) == 2:
             return True, output
         else:
             return False, output
@@ -198,8 +199,8 @@ def set_bootvar(device, image, file_system="bootflash:"):
         output += device.native.send_command_expect('copy running-config startup-config\n\n', delay_factor=5)
         # in case we get a [startup-config]
         output += device.show('\n')
-
         return True, output
+        
     else:
         return False, output
 
@@ -211,12 +212,15 @@ def reload_device(device, command='reload'):
 
         output = ""
         raw_output = device.show_list(cmds)
-
+		
         if isinstance(raw_output, list):
             raw_output = "\n".join(raw_output)
+            
         output += "\noutput from reload command is {}\n".format(raw_output)
         output += "-- dont worry we hit enter for you!"
+        
         # device may not kick us out immediately, but it should
+        # Wait for device to reload
         time.sleep(30)
         return output
     except socket.error:
@@ -248,30 +252,27 @@ def verify_bootvar(device, image, **kwargs):
         print("Verfied bootup configuration")
         return True, output
 
-
-def wait_for_reboot(ip, repeat=500, delay=60):
+def wait_for_reboot(ip, repeat=600):
     """
-    Pings a device until it responds
+	Pings a device until it responds
 
-    :param ip: str ip address
-    :param delay: int how long to wait before testing begins
-    :param repeat: int maximum number of ping attempts before giving up
-    :return: bool if device comes online
-    """
+	:param ip: str ip address
+	:param delay: int how long to wait before testing begins
+	:param repeat: int maximum number of ping attempts before giving up
+	:return: bool if device comes online
+	"""
+
     try:
-        # in case this gets called to soon e.g a device responds to ping
-        # for a bit we'll sleep for `delay`
-        print "Waiting {} seconds for device to go down completely".format(delay)
-        time.sleep(delay)
-        # then start testing
-        for i in range(repeat):
-            if repeat % 60 == 0:
-                print("Waiting {} more minutes for host to come online".format(delay / 60))
-            ping_success = ping(ip)
-            if ping_success:
+        # Ping parameters as function of OS
+        parameters = "-n 1" if system_name().lower() == "windows" else "-c 1"
+
+        for i in range(0, repeat):
+            if system_call("ping " + parameters + " " + ip) == 0:
                 print ("Host is responding to pings again!")
                 return True
+            else:
+                print ("Host is not responding to pings.")
         # after repeat number of pings we say it failed
-        return False
+    	return False
     except KeyboardInterrupt:
         sys.exit(1)

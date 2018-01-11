@@ -193,7 +193,7 @@ class ASR1000Upgrade(IOSUpgrade):
             exit()
 
         # Verify bootvar
-        self.status = "VERIFY BOOT VARIABLE"
+        self.status = "VERIFYING BOOT VARIABLE"
         result = generic.verify_bootvar(connected, self.target_image)
         valid_bootvar, valid_bootvar_output = result
 
@@ -216,29 +216,49 @@ class ASR1000Upgrade(IOSUpgrade):
         self.reload_status_log_url = logbin_url
 
         reloaded = True
-        if reloaded:
-            self.reload_status = "success"
-
-        else:
-            self.status = "FAILED"
-            exit()
+        self.status = "RELOAD IN PROGRESS"
+        # in case this gets called to soon e.g a device responds to ping
+        # for a bit we'll sleep for `delay`
+        print ("Waiting 7 minutes for device to reload")
+        time.sleep(420)
 
         # wait for device to come line
-        if reloaded and generic.wait_for_reboot(self.device):
-            self.status = "BACK ONLINE, WAITING FOR BOOTUP"
-            # linecards may still be booting/upgrading
-            time.sleep(300)
+        self.status = "VERIFYING DEVICE IS REACHABLE"
+        wait_for_reboot = generic.wait_for_reboot(self.device)
+        excluded_lines = ['Chassis', 'ok']
+        healthy_module = 1
+        healthy_module_delay = 0
 
-        else:
-            self.status = "FAILED"
-            exit()
-
-        # Verify upgrade
-        self.status = "VERIFYING UPGRADE"
         online = NTC(host=self.device,
                      username=self.username,
                      password=self.password,
                      device_type="cisco_ios_ssh")
+
+        if reloaded and wait_for_reboot:
+            # Repeat if one more more module is not in an 'ok' state
+            while healthy_module != 0:
+                # Determine how many modules are not in an 'ok' state
+                platform_output = online.show('show platform | i ASR')
+                lines = platform_output.rstrip().split('\n')
+                lines = [l for l in lines if not any(s in l for s in excluded_lines)]
+                healthy_module = len(lines)
+
+                # Wait for 20 more seconds if one or more modules not in 'ok' state
+                self.status = "BACK ONLINE, WAITING FOR LINECARDS"
+                print ("{} linecards are not in a 'ok' state.".format(healthy_module))
+                time.sleep(20)
+                healthy_module_delay += 1
+                if healthy_module_delay == 6:
+                    self.status = "FAILED - COULD NOT VERIFY LINECARD STATE"
+                    exit()
+            self.status = "BACK ONLINE"
+            self.reload_status = "success"
+        else:
+            self.status = "FAILED - DEVICE NOT REACHABLE"
+            exit()
+
+        # Verify upgrade
+        self.status = "VERIFYING UPGRADE"
 
         # here we are formatting the output that will be pushed to the logbin
         # so that it will be able to be viewed as an iframe
