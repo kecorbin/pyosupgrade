@@ -304,7 +304,7 @@ class ASR1000Upgrade(IOSUpgrade):
 
 
         rommon_output = online.show('show platform | be Firmware')
-        image_output += '\nDetecting ROMMON with `show platform | be Firmware`\n'
+        image_output += '\n\nDetecting ROMMON with `show platform | be Firmware`:\n\n'
         image_output += rommon_output
 
         # Determine slots requiring ROMMON upgrade, excluding 16.3(2r)
@@ -315,9 +315,11 @@ class ASR1000Upgrade(IOSUpgrade):
 
         if expected_rommon_upgrades == 0:
             print("\n16.3(2r) ROMMON seen for all modules")
+            image_output += '\n\n16.3(2r) ROMMON seen on all slots'
             rommon_upgraded = True
         else:
             print ("\n16.3(2r) ROMMON not seen for one or more modules\n")
+            image_output += '\n\n16.3(2r) ROMMON is not seen on all slots'
             rommon_upgraded = False
 
         if image_upgraded == False or rommon_upgraded == False:
