@@ -208,7 +208,6 @@ def set_bootvar(device, image, file_system="bootflash:"):
     else:
         return False, output
 
-
 def upgrade_rommon(device, rommon, file_system="bootflash:"):
     """
     Removes existing boot statements on *device* and adds one for *image*
@@ -217,7 +216,7 @@ def upgrade_rommon(device, rommon, file_system="bootflash:"):
     :param device: ntc_device object
     :param rommon: str rommon filename
     :param file_system: str filesystem name, defaults to 'bootflash:'
-    :returns: None
+    :returns: bool
     """
     device.open()
 
@@ -235,7 +234,7 @@ def upgrade_rommon(device, rommon, file_system="bootflash:"):
     # Upgrade ROMMON
     print ("Updating ROMMON on {} modules.".format(expected_rommon_upgrades))
     command = 'upgrade rom-monitor filename {}{} all'.format(file_system, rommon)
-    output += device.native.send_command_expect(command, delay_factor=5)
+    output += device.native.send_command(command, delay_factor=expected_rommon_upgrades)
 
     # Verify ROMMON
     num_upgraded_modules = output.count("ROMMON upgrade complete")

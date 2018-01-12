@@ -324,8 +324,13 @@ class ASR1000Upgrade(IOSUpgrade):
 
         if image_upgraded == False or rommon_upgraded == False:
             self.verify_upgrade = "danger"
+            exit()
         else:
             self.verify_upgrade = "success"
+            self.status = "WAITING FOUR MINUTES TO COLLECT POST-UPGRADE VERIFICATION"
+
+        # Pause script for four minutes to allow for routes to reform.
+        time.sleep(240)
 
         # ship the log file and move on
         print image_output
@@ -334,6 +339,8 @@ class ASR1000Upgrade(IOSUpgrade):
 
         custom_1 = self.custom_verification_1()
         custom_2 = self.custom_verification_2()
+
+
 
         # Capture post verification commands
         if self.verification_commands:
