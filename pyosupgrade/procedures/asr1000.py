@@ -222,7 +222,7 @@ class ASR1000Upgrade(IOSUpgrade):
         rommon_result, rommon_output = result
         if rommon_output:
             logbin_url = self.logbin(rommon_output, description="upgrading rommon for {}".format(self.device))
-            self.set_rommon_status_log_url = logbin_url
+            self.set_rommon_log_url = logbin_url
             self.set_rommon_status = "success"
         else:
             self.status = "FAILED - COULD NOT UPGRADE ROMMON"

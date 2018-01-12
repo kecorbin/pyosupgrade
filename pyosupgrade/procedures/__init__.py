@@ -323,13 +323,13 @@ class BaseUpgrade(object):
         self._update_job()
 
     @property
-    def set_rommon_status_log_url(self):
-        return self._attributes.get('set_rommon_status_log_url', None)
+    def set_rommon_log_url(self):
+        return self._attributes.get('set_rommon_log_url', None)
 
 
-    @set_rommon_status_log_url.setter
-    def set_rommon_status_log_url(self, status):
-        self._attributes["set_rommon_status_log_url"] = status
+    @set_rommon_log_url.setter
+    def set_rommon_log_url(self, status):
+        self._attributes["set_rommon_log_url"] = status
         self._update_job()
 
     @property

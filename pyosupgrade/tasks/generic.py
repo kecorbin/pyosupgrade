@@ -39,7 +39,8 @@ def verify_sup_redundancy(device):
     return "Standby hot" in output, output
 
 
-def copy_remote_image(device, url, file_system="bootflash:", expect1="bytes copied", expect2="signature successfully verified"):
+def copy_remote_image(device, url, file_system="bootflash:", expect1="bytes copied",
+                      expect2="signature successfully verified"):
     """
 
     :param device: pyntc device
@@ -113,14 +114,13 @@ def copy_image_to_slave(device,
         command = 'copy {}{} {}{}'.format(source_fs, image,
                                           dst_fs, image)
         output = device.native.send_command_expect(command, delay_factor=30)
-        expected_patterns = ["bytes copied", "Signature verified","signature successfully verified"]
+        expected_patterns = ["bytes copied", "Signature verified", "signature successfully verified"]
 
         # checks that all expected_patterns are present in the output
         if output.count(expected_patterns) == 2:
             return True, output
         else:
             return False, output
-
 
 
 def verify_image(device, image):
@@ -145,6 +145,7 @@ def verify_image(device, image):
     else:
         return False, output
 
+
 def ping(host):
     """
     https://stackoverflow.com/questions/2953462/pinging-servers-in-python
@@ -158,8 +159,11 @@ def ping(host):
     """
     # Ping parameters as function of OS
     parameters = "-n 1" if system_name().lower() == "windows" else "-c 1"
-    # Pinging
-    return system_call("ping " + parameters + " " + host + " > /dev/null") == 0
+
+    if system_call("ping " + parameters + " " + host) == 0:
+        return True
+    else:
+        return False
 
 
 def set_bootvar(device, image, file_system="bootflash:"):
@@ -200,9 +204,10 @@ def set_bootvar(device, image, file_system="bootflash:"):
         # in case we get a [startup-config]
         output += device.show('\n')
         return True, output
-        
+
     else:
         return False, output
+
 
 def upgrade_rommon(device, rommon, file_system="bootflash:"):
     """
@@ -230,7 +235,7 @@ def upgrade_rommon(device, rommon, file_system="bootflash:"):
     # Upgrade ROMMON
     print ("Updating ROMMON on {} modules.".format(expected_rommon_upgrades))
     command = 'upgrade rom-monitor filename {}{} all'.format(file_system, rommon)
-    output += device.native.send_command_expect(command, delay_factor=10)
+    output += device.native.send_command_expect(command, delay_factor=5)
 
     # Verify ROMMON
     num_upgraded_modules = output.count("ROMMON upgrade complete")
@@ -249,13 +254,13 @@ def reload_device(device, command='reload'):
 
         output = ""
         raw_output = device.show_list(cmds)
-		
+
         if isinstance(raw_output, list):
             raw_output = "\n".join(raw_output)
-            
+
         output += "\noutput from reload command is {}\n".format(raw_output)
         output += "-- dont worry we hit enter for you!"
-        
+
         # device may not kick us out immediately, but it should
         # Wait for device to reload
         time.sleep(30)
@@ -289,6 +294,7 @@ def verify_bootvar(device, image, **kwargs):
         print("Verfied bootup configuration")
         return True, output
 
+
 def wait_for_reboot(ip, repeat=600):
     """
 	Pings a device until it responds
@@ -300,16 +306,13 @@ def wait_for_reboot(ip, repeat=600):
 	"""
 
     try:
-        # Ping parameters as function of OS
-        parameters = "-n 1" if system_name().lower() == "windows" else "-c 1"
-
         for i in range(0, repeat):
-            if system_call("ping " + parameters + " " + ip) == 0:
+            if ping(ip):
                 print ("Host is responding to pings again!")
                 return True
             else:
                 print ("Host is not responding to pings.")
         # after repeat number of pings we say it failed
-    	return False
+        return False
     except KeyboardInterrupt:
         sys.exit(1)
