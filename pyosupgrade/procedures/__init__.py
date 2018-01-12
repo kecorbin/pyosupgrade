@@ -147,6 +147,15 @@ class BaseUpgrade(object):
         self._update_job()
 
     @property
+    def target_rommon(self):
+        return self._attributes.get('target_rommon', "default")
+
+    @target_rommon.setter
+    def target_rommon(self, target_rommon):
+        self    ._attributes['target_rommon'] = target_rommon
+        self._update_job()
+
+    @property
     def code_upload_status(self):
         return self._attributes.get('code_upload_status', "default")
 
@@ -301,6 +310,26 @@ class BaseUpgrade(object):
     @verify_bootvar_status_log_url.setter
     def verify_bootvar_status_log_url(self, status):
         self._attributes["verify_bootvar_status_log_url"] = status
+        self._update_job()
+
+    @property
+    def set_rommon_status(self):
+        return self._attributes.get('set_rommon_status', "default")
+
+
+    @set_rommon_status.setter
+    def set_rommon_status(self, status):
+        self._attributes["set_rommon_status"] = status
+        self._update_job()
+
+    @property
+    def set_rommon_log_url(self):
+        return self._attributes.get('set_rommon_log_url', None)
+
+
+    @set_rommon_log_url.setter
+    def set_rommon_log_url(self, status):
+        self._attributes["set_rommon_log_url"] = status
         self._update_job()
 
     @property
