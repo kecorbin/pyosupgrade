@@ -208,13 +208,14 @@ def set_bootvar(device, image, file_system="bootflash:"):
     else:
         return False, output
 
-def upgrade_rommon(device, rommon, file_system="bootflash:"):
+def upgrade_rommon(device, rommon, rommon_version, file_system="bootflash:"):
     """
     Removes existing boot statements on *device* and adds one for *image*
     also saves the configuration
 
     :param device: ntc_device object
-    :param rommon: str rommon filename
+    :param rommon: str target rommon filename
+    :param rommon_version: str target rommon version
     :param file_system: str filesystem name, defaults to 'bootflash:'
     :returns: bool
     """
@@ -225,26 +226,36 @@ def upgrade_rommon(device, rommon, file_system="bootflash:"):
     rommon_output = device.show('show platform | be Firmware')
     output += rommon_output
 
-    # Determine slots requiring ROMMON upgrade
-    excluded_lines = ['Slot', '-----']
-    lines = output.rstrip().split('\n')
-    lines = [l for l in lines if not any(s in l for s in excluded_lines)]
-    expected_rommon_upgrades = len(lines)
 
-    # Upgrade ROMMON
+    # Determine slot IDs requiring a ROMMON upgrade.
+    # Excludes slots with rommon_version.
+    print (rommon_version)
+    lines = rommon_output.rstrip().split('\n')
+    lines = [l for l in lines if rommon_version not in l]
+    rommon_upgrades = []
+    for x in lines:
+        # Uses a RegEx string to match a number or character and number with whitespace following at start of line.
+        rommon_upgrades += re.findall(r'\b\d\s|\b\w\d\s', x)
+    expected_rommon_upgrades = len(rommon_upgrades)
+
     print ("Updating ROMMON on {} modules.".format(expected_rommon_upgrades))
-    command = 'upgrade rom-monitor filename {}{} all'.format(file_system, rommon)
-    output += device.native.send_command(command, delay_factor=expected_rommon_upgrades)
 
-    # Verify ROMMON
-    num_upgraded_modules = output.count("ROMMON upgrade complete")
-    if num_upgraded_modules == expected_rommon_upgrades:
-        print("ROMMON upgrade complete")
-        return True, output
-    else:
-        print("ROMMON upgrade failed")
-        return False, output
+    # Upgrade ROMMON for each slot separately
+    for x in rommon_upgrades:
+        command = 'upgrade rom-monitor filename {}{} {}'.format(file_system, rommon, x)
+        verify_rommon = device.native.send_command(command, delay_factor=3)
 
+        if "ROMMON upgrade complete" in verify_rommon:
+            print("ROMMON Upgrade complete on {} Slot".format(x))
+            output += '\n'
+            output += verify_rommon
+        else:
+            print("ROMMON Upgrade failed on {} Slot".format(x))
+            output += '\n'
+            output += verify_rommon
+            return False, output
+
+    return True, output
 
 def reload_device(device, command='reload'):
     try:

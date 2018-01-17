@@ -218,7 +218,7 @@ class ASR1000Upgrade(IOSUpgrade):
 
         # Upgrade ROMMON
         self.status = "UPGRADING ROMMON"
-        result = generic.upgrade_rommon(connected, rommon=self.target_rommon)
+        result = generic.upgrade_rommon(connected, rommon=self.target_rommon, rommon_version='16.3(2r)')
         rommon_result, rommon_output = result
         if rommon_output:
             logbin_url = self.logbin(rommon_output, description="upgrading rommon for {}".format(self.device))
@@ -226,6 +226,9 @@ class ASR1000Upgrade(IOSUpgrade):
             self.set_rommon_status = "success"
         else:
             self.status = "FAILED - COULD NOT UPGRADE ROMMON"
+            logbin_url = self.logbin(rommon_output, description="upgrading rommon for {}".format(self.device))
+            self.set_rommon_log_url = logbin_url
+            self.set_rommon_status = "danger"
             exit()
 
         # Reload
