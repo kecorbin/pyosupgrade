@@ -11,11 +11,11 @@ FOO:
   filename: cat4500e-universalk9.SPA.03.08.04.E.152-4.E4.bin
 
 ASR1000-RP2:
-  filename: asr1000rp2-adventerprisek9.03.16.04b.S.155-3.S4b-ext.bin
+  filename: asr1000rp2-adventerprisek9.03.16.06b.S.155-3.S6b-ext.bin
   rommon: asr1000-rommon.163-2r.pkg
 
 ASR1000-RP1:
-  filename: asr1000rp1-adventerprisek9.03.16.04b.S.155-3.S4b-ext.bin
+  filename: asr1000rp1-adventerprisek9.03.16.06b.S.155-3.S6b-ext.bin
   rommon: asr1000-rommon.163-2r.pkg
 
 CSR1000V:
