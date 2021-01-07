@@ -30,7 +30,7 @@ Jinja2==2.9.6
 jsonschema==2.6.0
 junos-eznc==2.1.5
 kombu==4.1.0
-lxml==3.8.0
+lxml==4.6.2
 MarkupSafe==1.0
 mccabe==0.6.1
 mock==2.0.0
