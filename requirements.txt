@@ -53,7 +53,7 @@ pynxos==0.0.3
 pyserial==3.4
 python-dateutil==2.6.1
 pytz==2017.2
-PyYAML==3.12
+PyYAML==5.4
 redis==2.10.6
 requests==2.18.4
 scp==0.10.2
